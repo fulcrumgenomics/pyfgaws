@@ -40,7 +40,7 @@ def stubbed_client_submit_job(
     submit_job_response: SubmitJobResponseTypeDef,
     describe_job_definitions_response: Optional[DescribeJobDefinitionsResponseTypeDef] = None,
 ) -> Client:
-    client = botocore.session.get_session().create_client("batch")
+    client = botocore.session.get_session().create_client("batch", region_name="us-east-1")
     stubber = Stubber(client)
 
     if describe_job_definitions_response is not None:

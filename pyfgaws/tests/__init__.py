@@ -35,7 +35,7 @@ def stubbed_client(service_name: str, method: str, service_responses: List[Any])
         an activated stubbed client with the given responses added
     """
 
-    client = botocore.session.get_session().create_client(service_name)
+    client = botocore.session.get_session().create_client(service_name, region_name="us-east-1")
     stubber = Stubber(client)
     for service_response in service_responses:
         stubber.add_response(method=method, service_response=service_response)
