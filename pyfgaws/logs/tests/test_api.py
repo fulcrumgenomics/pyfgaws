@@ -1,4 +1,4 @@
-"""Tests for :module:`~pyfgws.logs.api`"""
+"""Tests for :module:`~pyfgaws.logs.api`"""
 
 from typing import List
 

@@ -60,10 +60,10 @@ def watch_job(
 def run_job(
     *,
     template_json: Path,
+    job_definition: str,
     region_name: Optional[str] = None,
     polling_interval: int = DEFAULT_POLLING_INTERVAL,
     print_cloudwatch_logs: bool = True,
-    job_definition: Optional[str] = None,
     queue: Optional[str] = None,
     cpus: Optional[int] = None,
     mem_mb: Optional[int] = None,
@@ -73,11 +73,12 @@ def run_job(
 
     Args:
         template_json: path to a JSON job template
+        job_definition: the ARN for the AWS batch job definition, or the name of the job definition
+            to get the latest revision
         region_name: the AWS region
         polling_interval: the number of seconds to wait after polling for a jobs status to try
             again
         print_cloudwatch_logs: true to print CloudWatch logs, false otherwise
-        job_definition: the ARN for the AWS batch job definition
         queue: the name of the AWS bathc queue
         cpus: the number of CPUs to request
         mem_mb: the amount of memory to request (in megabytes)

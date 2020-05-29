@@ -6,7 +6,6 @@ from typing import List
 import botocore.session
 import pytest
 from botocore.stub import Stubber
-from mypy_boto3.logs import Client
 
 
 def _to_name(tool) -> str:  # type: ignore
@@ -24,7 +23,7 @@ def test_tool_funcs(tool, main) -> None:  # type: ignore
     assert e.value.code == 0  # code should be 0 for help
 
 
-def stubbed_client(service_name: str, method: str, service_responses: List[Any]) -> Client:
+def stubbed_client(service_name: str, method: str, service_responses: List[Any]) -> Any:
     """Creates a stubbed client.
 
     Args:

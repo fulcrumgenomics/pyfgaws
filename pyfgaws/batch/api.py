@@ -22,7 +22,7 @@ DEFAULT_POLLING_INTERVAL: int = 30
 def submit_job(
     batch_client: batch.Client,
     template_json: Path,
-    job_definition: Optional[str] = None,
+    job_definition: str,
     queue: Optional[str] = None,
     cpus: Optional[int] = None,
     mem_mb: Optional[int] = None,
@@ -34,7 +34,8 @@ def submit_job(
     Args:
         batch_client: the boto3 AWS batch client
         template_json: path to a JSON job template
-        job_definition: the ARN for the AWS batch job definition
+        job_definition: the ARN for the AWS batch job definition, or the name of the job definition
+            to get the latest revision
         queue: the name of the AWS batch queue
         cpus: the number of CPUs to request
         mem_mb: the amount of memory to request (in megabytes)
@@ -56,6 +57,7 @@ def submit_job(
         response = batch_client.describe_job_definitions(jobDefinitionName=job_definition)
         latest = max(response["jobDefinitions"], key=lambda d: d["revision"])
         job_definition_arn = latest["jobDefinitionArn"]
+        assert latest["jobDefinitionName"] == job_definition, "Bug"
         if logger is not None:
             logger.info(f"Retrieved latest job definition '{job_definition}'")
 
@@ -84,7 +86,8 @@ def submit_job(
     if command is not None:
         overrides["command"] = command
     event_string: str = json.dumps(event)
-    logger.debug(event_string)
+    if logger is not None:
+        logger.debug(event_string)
 
     # Build the container overrides
     container_overrides = overrides  # TODO: deep copy
