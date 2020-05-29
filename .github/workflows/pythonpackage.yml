@@ -28,7 +28,7 @@ jobs:
         poetry run python -m pytest --cov=pyfgaws --cov-branch
     - name: Style checking
       run: |
-        black --line-length 99 --check pyfgaw
+        poetry run black --line-length 99 --check pyfgaw
     - name: Run lint
       run: |
         poetry run flake8 --config=ci/flake8.cfg pyfgaws
