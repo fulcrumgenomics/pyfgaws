@@ -2,7 +2,7 @@
 name = "pyfgaws"
 version = "0.0.1"
 description = "Tools and python libraries for working with AWS."
-authors = ["Nisl Homer"]
+authors = ["Nils Homer"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
