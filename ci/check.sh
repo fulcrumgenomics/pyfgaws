@@ -24,9 +24,9 @@ function run() {
     set -e
 
     if [[ $exit_code == 0 ]]; then
-        echo Passed $name
+        echo Passed $name: "[$cmd]"
     else
-        echo Failed $name
+        echo Failed $name: "[$cmd]"
         if [ -z "$failures" ]; then
             failures="$failures $name"
         else
