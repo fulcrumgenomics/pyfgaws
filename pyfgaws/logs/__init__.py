@@ -1,3 +1,3 @@
-from pyfgaws.logs.api import DEFAULT_POLLING_INTERVAL, get_log_events
+from pyfgaws.logs.api import DEFAULT_POLLING_INTERVAL, Log
 
-__all__ = ("DEFAULT_POLLING_INTERVAL", "get_log_events")
+__all__ = ("DEFAULT_POLLING_INTERVAL", "Log")

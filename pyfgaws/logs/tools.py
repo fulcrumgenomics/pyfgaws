@@ -12,13 +12,13 @@ from typing import Optional
 import boto3
 
 from pyfgaws.logs import DEFAULT_POLLING_INTERVAL
-from pyfgaws.logs import get_log_events
+from pyfgaws.logs import Log
 
 
 def watch_logs(
     *,
-    log_group_name: str,
-    log_stream_name: str,
+    group: str,
+    stream: str,
     region_name: Optional[str] = None,
     polling_interval: int = DEFAULT_POLLING_INTERVAL,
     raw_output: bool = False,
@@ -26,28 +26,31 @@ def watch_logs(
     """Watches a cloud watch log stream
 
     Args:
-        log_group_name: the name of the log group
-        log_stream_name: the name of the log stream
+        group: the name of the log group
+        stream: the name of the log stream
         region_name: the AWS region
+        polling_interval: the time to wait before polling for new logs
+        raw_output: output the logs directly to standard output, otherwise uses the internal
+            logger.
     """
     logger = logging.getLogger(__name__)
 
-    logs_client = boto3.client(
+    client = boto3.client(
         service_name="logs", region_name=region_name  # type: ignore
     )
 
-    logger.info(f"Polling log group '{log_group_name}' and stream '{log_stream_name}'")
+    logger.info(f"Polling log group '{group}' and stream '{stream}'")
+
+    log: Log = Log(client=client, group=group, stream=stream)
+
     while True:
-        for line in get_log_events(
-            logs_client=logs_client,
-            log_group_name=log_group_name,
-            log_stream_name=log_stream_name,
-        ):
+        for line in log:
             if raw_output:
                 print(line)
             else:
                 logger.info(line)
         time.sleep(polling_interval)
+        log.reset()
 
 
 # The AWS CloudWatch log tools to expose on the command line

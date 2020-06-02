@@ -9,6 +9,7 @@ python = "^3.8"
 attrs = "^19.3.0"
 defopt = "^6.0"
 boto3 = "^1.13.18"
+botocore = "^1.13.18"
 boto3-stubs = {extras = ["batch", "logs"], version = "^1.13.19"}
 
 [tool.poetry.dev-dependencies]

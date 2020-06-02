@@ -4,7 +4,8 @@ Command-line tools for interacting with AWS Batch
 """
 
 import logging
-from pathlib import Path
+import threading
+import time
 from typing import Callable
 from typing import List
 from typing import Optional
@@ -15,107 +16,137 @@ from mypy_boto3 import logs
 from mypy_boto3.batch.type_defs import DescribeJobsResponseTypeDef  # noqa
 from mypy_boto3.batch.type_defs import SubmitJobResponseTypeDef  # noqa
 
-from pyfgaws.batch import DEFAULT_POLLING_INTERVAL
-from pyfgaws.batch import submit_job
-from pyfgaws.batch import wait_for_job
+from pyfgaws.batch import BatchJob
+from pyfgaws.logs import DEFAULT_POLLING_INTERVAL as DEFAULT_LOGS_POLLING_INTERVAL
+from pyfgaws.logs import Log
 
 
-def watch_job(
-    *,
-    job_id: str,
-    region_name: Optional[str] = None,
-    polling_interval: int = DEFAULT_POLLING_INTERVAL,
-    print_cloudwatch_logs: bool = True,
-) -> None:
+def _log_it(region_name: str, job: BatchJob, logger: logging.Logger) -> None:
+    """Creates a background thread to print out CloudWatch logs.
+
+    Args:
+        region_name: the AWS region
+        job: the AWS batch job
+        logger: the logger to which logs should be printed
+    """
+    # Create a background thread
+    logs_thread = threading.Thread(
+        target=_watch_logs, args=(region_name, job, logger), daemon=True
+    )
+    logs_thread.start()
+
+
+def watch_job(*, job_id: str, region_name: Optional[str] = None, print_logs: bool = True,) -> None:
     """Watches an AWS batch job.
 
     Args:
         job_id: the AWS batch job identifier
         region_name: the AWS region
-        polling_interval: the number of seconds to wait after polling for a jobs status to try
-            again
-        print_cloudwatch_logs: true to print CloudWatch logs, false otherwise
+        print_logs: true to print CloudWatch logs, false otherwise
     """
     logger = logging.getLogger(__name__)
 
-    batch_client: batch.Client = boto3.client(
+    client: batch.Client = boto3.client(
         service_name="batch", region_name=region_name  # type: ignore
     )
-    logs_client: Optional[logs.Client] = None
 
-    if print_cloudwatch_logs:
-        logs_client = boto3.client(
-            service_name="logs", region_name=region_name  # type: ignore
-        )
+    # Create the job
+    job: BatchJob = BatchJob.from_id(client=client, job_id=job_id)
 
-    wait_for_job(
-        batch_client=batch_client,
-        job_id=job_id,
-        logs_client=logs_client,
-        polling_interval=polling_interval,
-        logger=logger,
+    logger.info(f"Watching job with name '{job.name}' and id '{job.job_id}'")
+    if print_logs:
+        _log_it(region_name=region_name, job=job, logger=logger)
+
+    job.wait_on_complete()
+    logger.info(
+        f"Job completed with name '{job.name}', id '{job.job_id}', and status '{job.get_status()}'"
     )
 
 
 def run_job(
     *,
-    template_json: Path,
+    name: str,
     job_definition: str,
     region_name: Optional[str] = None,
-    polling_interval: int = DEFAULT_POLLING_INTERVAL,
-    print_cloudwatch_logs: bool = True,
+    print_logs: bool = True,
     queue: Optional[str] = None,
     cpus: Optional[int] = None,
     mem_mb: Optional[int] = None,
-    command: Optional[str] = None,
+    command: List[str] = [],
 ) -> None:
     """Submits a batch job and waits for it to complete.
 
     Args:
-        template_json: path to a JSON job template
+        name: then name of the batch job
         job_definition: the ARN for the AWS batch job definition, or the name of the job definition
             to get the latest revision
         region_name: the AWS region
-        polling_interval: the number of seconds to wait after polling for a jobs status to try
-            again
-        print_cloudwatch_logs: true to print CloudWatch logs, false otherwise
-        queue: the name of the AWS bathc queue
+        print_logs: true to print CloudWatch logs, false otherwise
+        queue: the name of the AWS batch queue
         cpus: the number of CPUs to request
         mem_mb: the amount of memory to request (in megabytes)
-        command: the command to use
+        command: the command(s) to use
     """
     logger = logging.getLogger(__name__)
 
     batch_client: batch.Client = boto3.client(
         service_name="batch", region_name=region_name  # type: ignore
     )
-    logs_client: Optional[logs.Client] = None
 
-    if print_cloudwatch_logs:
-        logs_client = boto3.client(
-            service_name="logs", region_name=region_name  # type: ignore
-        )
-
-    logger.info("Submitting job...")
-    job = submit_job(
-        batch_client=batch_client,
-        template_json=template_json,
-        job_definition=job_definition,
+    job = BatchJob(
+        client=batch_client,
+        name=name,
         queue=queue,
+        job_definition=job_definition,
         cpus=cpus,
         mem_mb=mem_mb,
         command=command,
         logger=logger,
     )
-    logger.info(f"""Job submitted with name '{job["jobName"]}' and id '{job["jobId"]}'""")
 
-    wait_for_job(
-        batch_client=batch_client,
-        job_id=job["jobId"],
-        logs_client=logs_client,
-        polling_interval=polling_interval,
-        logger=logger,
+    # Submit the job
+    logger.info("Submitting job...")
+    job.submit()
+    logger.info(f"Job submitted with name '{job.name}' and id '{job.job_id}'")
+
+    if print_logs:
+        _log_it(region_name=region_name, job=job, logger=logger)
+
+    # Wait for the job to complete
+    job.wait_on_complete()
+    logger.info(
+        f"Job completed with name '{job.name}', id '{job.job_id}', and status '{job.get_status()}'"
     )
+
+
+def _watch_logs(
+    region_name: str,
+    job: BatchJob,
+    logger: logging.Logger,
+    polling_interval: int = DEFAULT_LOGS_POLLING_INTERVAL,
+) -> None:
+    """A method to watch logs indefinitely.
+
+    Args:
+        region_name: the AWS region
+        job: the AWS batch job
+        logger: the logger to which logs should be printed
+        polling_interval: the default time to wait for new CloudWatch logs after no more logs are
+            returned
+    """
+    # wait until it's running to get the CloudWatch logs
+    job.wait_on_running()
+
+    client: Optional[logs.Client] = boto3.client(
+        service_name="logs", region_name=region_name  # type: ignore
+    )
+    log: Log = Log(client=client, group="/aws/batch/job", stream=job.stream)
+
+    while True:
+        for line in log:
+            logger.info(line)
+        time.sleep(polling_interval)
+        log.reset()
 
 
 # The AWS Batch tools to expose on the command line

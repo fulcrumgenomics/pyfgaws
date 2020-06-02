@@ -6,7 +6,7 @@ import pytest
 from mypy_boto3.logs import Client
 from mypy_boto3.logs.type_defs import GetLogEventsResponseTypeDef  # noqa
 
-from pyfgaws.logs import get_log_events
+from pyfgaws.logs import Log
 from pyfgaws.tests import stubbed_client
 
 
@@ -70,9 +70,7 @@ def valid_multiple_service_responses() -> List[GetLogEventsResponseTypeDef]:
 def test_get_log_events(service_responses: List[GetLogEventsResponseTypeDef]) -> None:
     client = stubbed_client_get_log_events(service_responses=service_responses)
 
-    events = list(
-        get_log_events(logs_client=client, log_group_name="name", log_stream_name="name")
-    )
+    events = list(Log(client=client, group="name", stream="name"))
 
     expected = [
         f"""{item["timestamp"]} {item["message"]}"""
