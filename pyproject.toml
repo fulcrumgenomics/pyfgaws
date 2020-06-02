@@ -2,7 +2,28 @@
 name = "pyfgaws"
 version = "0.0.1"
 description = "Tools and python libraries for working with AWS."
-authors = ["Nils Homer"]
+authors = ["Nils Homer", "Tim Fennell"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/fulcrumgenomics/pyfgaws"
+repository = "https://github.com/fulcrumgenomics/pyfgaws"
+keywords = ["aws", "bioinformatics"]
+classifiers = [
+	"Development Status :: 3 - Alpha",
+    "Environment :: Console",
+	"Intended Audience :: Developers",
+	"Intended Audience :: Science/Research",
+	"License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+	"Programming Language :: Python :: 3",
+	"Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+include = [
+    "LICENSE",
+]
+
 
 [tool.poetry.dependencies]
 python = "^3.8"
