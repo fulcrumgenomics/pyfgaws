@@ -79,7 +79,7 @@ def run_job(
     parameters: Optional[Dict[str, Any]] = None,
     environment: Optional[KeyValuePairTypeDef] = None,
     watch_until: List[Status] = [],
-    after_success: bool = False
+    after_success: bool = False,
 ) -> None:
     """Submits a batch job and optionally waits for it to reach one of the given states.
 
@@ -137,7 +137,7 @@ def run_job(
         # Wait for the job to reach on of the statuses
         job.wait_on(
             status_to_state=dict((status, True) for status in watch_until),
-            after_success=after_success
+            after_success=after_success,
         )
         logger.info(
             f"Job name '{job.name}' and id '{job.job_id}' reached status '{job.get_status()}'"

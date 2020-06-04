@@ -40,7 +40,7 @@ def _parsers() -> Dict[type, Callable[[str], Any]]:
     return {
         Dict[str, Any]: lambda string: json.loads(string),
         BatchKeyValuePairTypeDef: _parse_key_value_pair_type,
-        Status: _parse_batch_status
+        Status: _parse_batch_status,
     }
 
 

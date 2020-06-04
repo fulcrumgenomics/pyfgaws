@@ -270,7 +270,7 @@ class BatchJob:
         status_to_state: Dict[Status, bool],
         max_attempts: Optional[int] = None,
         delay: Optional[int] = None,
-        after_success: bool = False
+        after_success: bool = False,
     ) -> batch.type_defs.JobDetailTypeDef:
         """Waits for the given states with associated success or failure.
 
@@ -332,8 +332,10 @@ class BatchJob:
             delay: the delay before waiting
         """
         return self.wait_on(
-            status_to_state={Status.Running: True}, max_attempts=max_attempts, delay=delay,
-            after_success=True
+            status_to_state={Status.Running: True},
+            max_attempts=max_attempts,
+            delay=delay,
+            after_success=True,
         )
 
     def wait_on_complete(
@@ -349,5 +351,5 @@ class BatchJob:
             status_to_state={Status.Succeeded: True, Status.Failed: True},
             max_attempts=max_attempts,
             delay=delay,
-            after_success=False
+            after_success=False,
         )
