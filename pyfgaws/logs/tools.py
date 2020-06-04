@@ -5,8 +5,6 @@ Command-line tools for interacting with AWS CloudWatch Logs
 
 import logging
 import time
-from typing import Callable
-from typing import List
 from typing import Optional
 
 import boto3
@@ -51,7 +49,3 @@ def watch_logs(
                 logger.info(line)
         time.sleep(polling_interval)
         log.reset()
-
-
-# The AWS CloudWatch log tools to expose on the command line
-LOGS_TOOLS: List[Callable] = [watch_logs]

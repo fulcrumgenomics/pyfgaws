@@ -8,6 +8,7 @@ import json
 import logging
 import sys
 from pathlib import Path
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -78,6 +79,41 @@ class Waiters:
             self._config = copy.deepcopy(self._default_config)
 
         self._model = botocore.waiter.WaiterModel(self._config)
+
+    def build(
+        self,
+        status_to_state: Dict[Status, bool],
+        max_attempts: Optional[int] = None,
+        delay: Optional[int] = None,
+    ) -> BotoWaiter:
+        """Builds a custom waiter that waits for the given states with associated success or
+        failure.
+
+        Args:
+            status_to_state: mapping of status to success (true) or failure (false) state
+            max_attempts: the maximum # of attempts until reaching the given state.
+            delay: the delay before waiting
+        """
+        assert len(status_to_state) > 0, "No statuses given"
+        name = "Waiter for statues: [" + ",".join(s.value for s in status_to_state) + "]"
+        config: Dict[str, Any] = {"version": 2}
+        waiter_body: Dict[str, Any] = {
+            "delay": delay,
+            "operation": "DescribeJobs",
+            "maxAttempts": max_attempts,
+            "acceptors": [
+                {
+                    "argument": "jobs[].status",
+                    "expected": f"{status.value}",
+                    "matcher": "pathAll",
+                    "state": f"""{"success" if state else "failure"}""",
+                }
+                for status, state in status_to_state.items()
+            ],
+        }
+        config["waiters"] = {name: waiter_body}
+        model = botocore.waiter.WaiterModel(config)
+        return botocore.waiter.create_waiter_with_client(name, model, self._client)
 
     def waiters(self) -> List[str]:
         """Returns the list of supported waiters."""
@@ -311,17 +347,17 @@ class BatchJob:
         waiter.config.max_attempts = sys.maxsize if max_attempts is None else max_attempts
         return waiter
 
-    def _wait_on(
-        self, states: List[str], max_attempts: Optional[int] = None, delay: Optional[int] = None
+    def _wait_on_names(
+        self, names: List[str], max_attempts: Optional[int] = None, delay: Optional[int] = None
     ) -> batch.type_defs.JobDetailTypeDef:
-        """Creates a waiter on which a caller can wait.
+        """Waits on the given named waiters to complete and returns the job's status.
 
            Args:
-               states: the list of states on which to wait
+               names: the list of states on which to wait
                max_attempts: the maximum # of attempts until reaching the given state.
                delay: the delay before waiting
         """
-        for name in states:
+        for name in names:
             # Note: we could add some jitter to the delay (`waiter.config.delay`) in cases where
             # multiple concurrent batch jobs are polled.
             waiter = self.waiter(name=name)
@@ -332,41 +368,60 @@ class BatchJob:
 
         return self.describe_job()
 
+    def wait_on(
+        self,
+        status_to_state: Dict[Status, bool],
+        max_attempts: Optional[int] = None,
+        delay: Optional[int] = None,
+    ) -> BotoWaiter:
+        """Waits for the given states with associated success or failure.
+
+        Args:
+            status_to_state: mapping of status to success (true) or failure (false) state
+            max_attempts: the maximum # of attempts until reaching the given state.
+            delay: the delay before waiting
+        """
+        return self._waiters.build(
+            status_to_state=status_to_state, max_attempts=max_attempts, delay=delay
+        )
+
     def wait_on_exists(
         self, max_attempts: Optional[int] = None, delay: Optional[int] = None
     ) -> batch.type_defs.JobDetailTypeDef:
-        """Creates a waiter that waits on the job to exist
+        """Wait until the job exists and returns the job's status.
 
-            Args:
-                max_attempts: the maximum # of attempts until reaching the given state.
-                delay: the delay before waiting
-         """
-        return self._wait_on(states=["job-exists"], max_attempts=max_attempts, delay=delay)
+        Args:
+            max_attempts: the maximum # of attempts until reaching the given state.
+            delay: the delay before waiting
+        """
+        return self._wait_on_names(names=["job-exists"], max_attempts=max_attempts, delay=delay)
 
     def wait_on_running(
         self, max_attempts: Optional[int] = None, delay: Optional[int] = None
     ) -> batch.type_defs.JobDetailTypeDef:
-        """Creates a waiter that waits on the job to be running
+        """Wait until the job is running and returns the job's status.
 
-            Args:
-                max_attempts: the maximum # of attempts until reaching the given state.
-                delay: the delay before waiting
-         """
-        return self._wait_on(
-            states=["job-exists", "job-running"], max_attempts=max_attempts, delay=delay
+        Args:
+            max_attempts: the maximum # of attempts until reaching the given state.
+            delay: the delay before waiting
+        """
+        return self._wait_on_names(
+            names=["job-exists", "job-running"], max_attempts=max_attempts, delay=delay
         )
 
     def wait_on_complete(
         self, max_attempts: Optional[int] = None, delay: Optional[int] = None
     ) -> batch.type_defs.JobDetailTypeDef:
-        """Creates a waiter that waits on the job to be completed (failed or succeeded)
+        """Wait until the job completes and returns the job's status.
 
-            Args:
-                max_attempts: the maximum # of attempts until reaching the given state.
-                delay: the delay before waiting
-         """
-        return self._wait_on(
-            states=["job-exists", "job-running", "job-complete"],
+        The job may succeed or fail.
+
+        Args:
+            max_attempts: the maximum # of attempts until reaching the given state.
+            delay: the delay before waiting
+        """
+        return self._wait_on_names(
+            names=["job-exists", "job-running", "job-complete"],
             max_attempts=max_attempts,
             delay=delay,
         )
