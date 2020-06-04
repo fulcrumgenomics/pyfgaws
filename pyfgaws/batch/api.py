@@ -240,7 +240,8 @@ class BatchJob:
         """
         jobs_response = client.describe_jobs(jobs=[job_id])
         jobs = jobs_response["jobs"]
-        assert len(jobs) == 1
+        assert len(jobs) <= 1, "More than one job described"
+        assert len(jobs) > 0, "No jobs found"
         job_info = jobs[0]
 
         # Treat container overrides specially
