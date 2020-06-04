@@ -12,6 +12,7 @@ import json
 
 from pyfgaws.batch.tools import run_job
 from pyfgaws.batch.tools import watch_job
+from pyfgaws.batch import Status
 from pyfgaws.logs.tools import watch_logs
 from mypy_boto3.batch.type_defs import KeyValuePairTypeDef as BatchKeyValuePairTypeDef  # noqa
 
@@ -30,18 +31,23 @@ def _parse_key_value_pair_type(string: str) -> BatchKeyValuePairTypeDef:
     return pair  # type: ignore
 
 
+def _parse_batch_status(string: str) -> Status:
+    raise Exception
+
+
 def _parsers() -> Dict[type, Callable[[str], Any]]:
     """Returns the custom parsers for defopt"""
     return {
         Dict[str, Any]: lambda string: json.loads(string),
         BatchKeyValuePairTypeDef: _parse_key_value_pair_type,
+        Status: _parse_batch_status
     }
 
 
 def main(argv: List[str] = sys.argv[1:]) -> None:
     logger = logging.getLogger(__name__)
     if len(argv) != 0 and all(arg not in argv for arg in ["-h", "--help"]):
-        logger.info("Running command: fgaws-tools" + " ".join(argv))
+        logger.info("Running command: fgaws-tools " + " ".join(argv))
     try:
         defopt.run(funcs=TOOLS, argv=argv, parsers=_parsers())
         logger.info("Completed successfully.")

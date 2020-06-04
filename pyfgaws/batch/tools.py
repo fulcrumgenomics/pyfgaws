@@ -15,10 +15,11 @@ import boto3
 from mypy_boto3 import batch
 from mypy_boto3 import logs
 from mypy_boto3.batch.type_defs import DescribeJobsResponseTypeDef  # noqa
-from mypy_boto3.batch.type_defs import SubmitJobResponseTypeDef  # noqa
 from mypy_boto3.batch.type_defs import KeyValuePairTypeDef  # noqa
+from mypy_boto3.batch.type_defs import SubmitJobResponseTypeDef  # noqa
 
 from pyfgaws.batch import BatchJob
+from pyfgaws.batch import Status
 from pyfgaws.logs import DEFAULT_POLLING_INTERVAL as DEFAULT_LOGS_POLLING_INTERVAL
 from pyfgaws.logs import Log
 
@@ -67,8 +68,8 @@ def watch_job(*, job_id: str, region_name: Optional[str] = None, print_logs: boo
 
 def run_job(
     *,
-    name: str,
     job_definition: str,
+    name: Optional[str] = None,
     region_name: Optional[str] = None,
     print_logs: bool = True,
     queue: Optional[str] = None,
@@ -77,14 +78,15 @@ def run_job(
     command: List[str] = [],
     parameters: Optional[Dict[str, Any]] = None,
     environment: Optional[KeyValuePairTypeDef] = None,
-    watch: bool = False,
+    watch_until: List[Status] = [],
+    after_success: bool = False
 ) -> None:
-    """Submits a batch job and optionally waits for it to complete.
+    """Submits a batch job and optionally waits for it to reach one of the given states.
 
     Args:
-        name: then name of the batch job
         job_definition: the ARN for the AWS batch job definition, or the name of the job definition
             to get the latest revision
+        name: the name of the job, otherwise one will be automatically generated
         region_name: the AWS region
         print_logs: true to print CloudWatch logs, false otherwise
         queue: the name of the AWS batch queue
@@ -93,6 +95,13 @@ def run_job(
         command: the command(s) to use
         parameters: the (JSON) dictionary of parameters to use
         environment: the (JSON) dictionary of environment variables to use
+        watch_until: watch until any of the given statuses are reached.  If the job reaches a
+            status past all statuses, then an exception is thrown.  For example, `Running` will
+            fail if `Succeeded` is reached, while `Succeeded` will fail if `Failed` is reached.  To
+            wait for the job to complete regardless of status, use both `Succeeded` and `Failed`.
+            See the `--after-success` option to control this behavior.
+        after_success: true to treat states after the `watch_until` states as success, otherwise
+            failure.
     """
     logger = logging.getLogger(__name__)
 
@@ -102,9 +111,9 @@ def run_job(
 
     job = BatchJob(
         client=batch_client,
-        name=name,
         queue=queue,
         job_definition=job_definition,
+        name=name,
         cpus=cpus,
         mem_mb=mem_mb,
         command=command,
@@ -119,15 +128,19 @@ def run_job(
     logger.info(f"Job submitted with name '{job.name}' and id '{job.job_id}'")
 
     # Optionally wait on it to complete
-    if watch:
+    # Note: watch_until should be type Optional[List[Status]], but see:
+    # - https://github.com/anntzer/defopt/issues/83
+    if len(watch_until) > 0:
         if print_logs:
             _log_it(region_name=region_name, job=job, logger=logger)
 
-        # Wait for the job to complete
-        job.wait_on_complete()
+        # Wait for the job to reach on of the statuses
+        job.wait_on(
+            status_to_state=dict((status, True) for status in watch_until),
+            after_success=after_success
+        )
         logger.info(
-            f"Job completed with name '{job.name}', id '{job.job_id}'"
-            f", and status '{job.get_status()}'"
+            f"Job name '{job.name}' and id '{job.job_id}' reached status '{job.get_status()}'"
         )
 
 

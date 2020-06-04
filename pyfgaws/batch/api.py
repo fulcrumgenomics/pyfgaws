@@ -4,16 +4,15 @@ Utility methods for interacting with AWS Batch
 """
 import copy
 import enum
-import json
 import logging
 import sys
-from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
 
 import botocore
+import namegenerator
 from botocore.waiter import Waiter as BotoWaiter
 from mypy_boto3 import batch
 from mypy_boto3.batch.type_defs import ArrayPropertiesTypeDef  # noqa
@@ -57,73 +56,6 @@ def get_latest_job_definition_arn(client: batch.Client, job_definition: str) -> 
     return latest["jobDefinitionArn"]
 
 
-class Waiters:
-    """A utility class to store waiters for AWS batch status."""
-
-    def __init__(self, client: batch.Client, config: Optional[Dict] = None) -> None:
-        """
-        Args:
-            client: the AWS batch client
-            config: an optional configuration dictionary for the Waiters to use, otherwise, uses
-                the default waiters in `waiters.json`
-        """
-        self._client: batch.Client = client
-        self._config: Optional[Dict]
-
-        if config is not None:
-            self._config = config
-        else:
-            config_path = Path(__file__).with_name("waiters.json").absolute()
-            with open(config_path) as config_file:
-                self._default_config = json.load(config_file)
-            self._config = copy.deepcopy(self._default_config)
-
-        self._model = botocore.waiter.WaiterModel(self._config)
-
-    def build(
-        self,
-        status_to_state: Dict[Status, bool],
-        max_attempts: Optional[int] = None,
-        delay: Optional[int] = None,
-    ) -> BotoWaiter:
-        """Builds a custom waiter that waits for the given states with associated success or
-        failure.
-
-        Args:
-            status_to_state: mapping of status to success (true) or failure (false) state
-            max_attempts: the maximum # of attempts until reaching the given state.
-            delay: the delay before waiting
-        """
-        assert len(status_to_state) > 0, "No statuses given"
-        name = "Waiter for statues: [" + ",".join(s.value for s in status_to_state) + "]"
-        config: Dict[str, Any] = {"version": 2}
-        waiter_body: Dict[str, Any] = {
-            "delay": delay,
-            "operation": "DescribeJobs",
-            "maxAttempts": max_attempts,
-            "acceptors": [
-                {
-                    "argument": "jobs[].status",
-                    "expected": f"{status.value}",
-                    "matcher": "pathAll",
-                    "state": f"""{"success" if state else "failure"}""",
-                }
-                for status, state in status_to_state.items()
-            ],
-        }
-        config["waiters"] = {name: waiter_body}
-        model = botocore.waiter.WaiterModel(config)
-        return botocore.waiter.create_waiter_with_client(name, model, self._client)
-
-    def waiters(self) -> List[str]:
-        """Returns the list of supported waiters."""
-        return self._model.waiter_names
-
-    def get(self, name: str) -> BotoWaiter:
-        """Builds and returns the waiter with the given name"""
-        return botocore.waiter.create_waiter_with_client(name, self._model, self._client)
-
-
 class BatchJob:
     """Stores information about a batch job.
 
@@ -132,16 +64,16 @@ class BatchJob:
 
     Attributes:
         client: the batch client to use
-        name: the name of the job
         queue: the nae of the AWS batch queue
         job_definition: the ARN for the AWS batch job definition, or the name of the job definition
             to get the latest revision
+        name: the name of the job, otherwise one will be automatically generated
         cpus: the number of CPUs to request
         mem_mb: the amount of memory to request (in megabytes)
         command: the command to use
         instance_type: the instance type to use
         environment: the environment variables to use
-        resource_requirements: a list of resource requirements for the job (type and amount)s
+        resource_requirements: a list of resource requirements for the job (type and amount)
         array_properties: the array properties for this job
         depends_on: the list of jobs to depend on
         parameters: additional parameters passed to the job that replace parameter substitution
@@ -158,9 +90,9 @@ class BatchJob:
     def __init__(
         self,
         client: batch.Client,
-        name: str,
         queue: str,
         job_definition: str,
+        name: Optional[str] = None,
         cpus: Optional[int] = None,
         mem_mb: Optional[int] = None,
         command: Optional[List[str]] = None,
@@ -194,8 +126,8 @@ class BatchJob:
                 logger.info(f"Retrieved latest job definition '{job_definition}'")
 
         # Main arguments
-        self.name: str = name  # should we just make up a name?
-        self.queue: str = queue  # should we just get the first one?
+        self.name: str = namegenerator.gen() if name is None else name
+        self.queue: str = queue
         self.array_properties: ArrayPropertiesTypeDef = (
             {} if array_properties is None else array_properties
         )
@@ -225,8 +157,6 @@ class BatchJob:
             self.container_overrides["resourceRequirements"] = copy.deepcopy(resource_requirements)
 
         self.job_id: Optional[str] = None
-
-        self._waiters: Optional[Waiters] = None
 
     @classmethod
     def from_id(cls, client: batch.Client, job_id: str) -> "BatchJob":
@@ -335,94 +265,89 @@ class BatchJob:
         ), f"""Job queue mismatched: {self.queue} != {job["jobQueue"]}"""
         return job_statuses[0]
 
-    def waiter(self, name: str, max_attempts: Optional[int] = None) -> botocore.waiter.Waiter:
-        """Creates a waiter on which a caller can wait.
-
-        Args:
-            name: the name of the waiter to use
-            max_attempts: the maximum # of attempts until reaching the given state.
-        """
-        if self._waiters is None:
-            self._waiters = Waiters(client=self.client)
-        waiter = self._waiters.get(name=name)
-        waiter.config.max_attempts = sys.maxsize if max_attempts is None else max_attempts
-        return waiter
-
-    def _wait_on_names(
-        self, names: List[str], max_attempts: Optional[int] = None, delay: Optional[int] = None
-    ) -> batch.type_defs.JobDetailTypeDef:
-        """Waits on the given named waiters to complete and returns the job's status.
-
-           Args:
-               names: the list of states on which to wait
-               max_attempts: the maximum # of attempts until reaching the given state.
-               delay: the delay before waiting
-        """
-        for name in names:
-            # Note: we could add some jitter to the delay (`waiter.config.delay`) in cases where
-            # multiple concurrent batch jobs are polled.
-            waiter = self.waiter(name=name)
-            waiter.config.max_attempts = sys.maxsize if max_attempts is None else max_attempts
-            if delay is not None:
-                waiter.config.delay = delay
-            waiter.wait(jobs=[self.job_id])
-
-        return self.describe_job()
-
     def wait_on(
         self,
         status_to_state: Dict[Status, bool],
         max_attempts: Optional[int] = None,
         delay: Optional[int] = None,
-    ) -> BotoWaiter:
+        after_success: bool = False
+    ) -> batch.type_defs.JobDetailTypeDef:
         """Waits for the given states with associated success or failure.
+
+        If some states are missing from the input mapping, then all statuses after the last
+        successful input status are treated as success or failure based on `after_success`
 
         Args:
             status_to_state: mapping of status to success (true) or failure (false) state
             max_attempts: the maximum # of attempts until reaching the given state.
             delay: the delay before waiting
         """
-        return self._waiters.build(
-            status_to_state=status_to_state, max_attempts=max_attempts, delay=delay
-        )
+        assert len(status_to_state) > 0, "No statuses given"
+        assert any(value for value in status_to_state.values()), "No statuses with success set."
 
-    def wait_on_exists(
-        self, max_attempts: Optional[int] = None, delay: Optional[int] = None
-    ) -> batch.type_defs.JobDetailTypeDef:
-        """Wait until the job exists and returns the job's status.
+        _status_to_state = copy.deepcopy(status_to_state)
+        # get the last status in the given mapping
+        last_success_status = None
+        for status in Status:
+            if _status_to_state.get(status, False):
+                last_success_status = status
 
-        Args:
-            max_attempts: the maximum # of attempts until reaching the given state.
-            delay: the delay before waiting
-        """
-        return self._wait_on_names(names=["job-exists"], max_attempts=max_attempts, delay=delay)
+        # for all statuses after last_success_status, set to failure
+        set_to_failure = False
+        for status in Status:
+            if status == last_success_status:
+                set_to_failure = True
+            elif set_to_failure:
+                _status_to_state[status] = after_success
+
+        name = "Waiter for statues: [" + ",".join(s.value for s in _status_to_state) + "]"
+        config: Dict[str, Any] = {"version": 2}
+        waiter_body: Dict[str, Any] = {
+            "delay": 1 if delay is None else delay,
+            "operation": "DescribeJobs",
+            "maxAttempts": sys.maxsize if max_attempts is None else max_attempts,
+            "acceptors": [
+                {
+                    "argument": "jobs[].status",
+                    "expected": f"{status.value}",
+                    "matcher": "pathAll",
+                    "state": f"""{"success" if state else "failure"}""",
+                }
+                for status, state in _status_to_state.items()
+            ],
+        }
+        config["waiters"] = {name: waiter_body}
+        model: botocore.waiter.WaiterModel = botocore.waiter.WaiterModel(config)
+        waiter: BotoWaiter = botocore.waiter.create_waiter_with_client(name, model, self.client)
+        waiter.wait(jobs=[self.job_id])
+        return self.describe_job()
 
     def wait_on_running(
         self, max_attempts: Optional[int] = None, delay: Optional[int] = None
     ) -> batch.type_defs.JobDetailTypeDef:
-        """Wait until the job is running and returns the job's status.
+        """Waits for the given states with associated success or failure.
 
         Args:
             max_attempts: the maximum # of attempts until reaching the given state.
             delay: the delay before waiting
         """
-        return self._wait_on_names(
-            names=["job-exists", "job-running"], max_attempts=max_attempts, delay=delay
+        return self.wait_on(
+            status_to_state={Status.Running: True}, max_attempts=max_attempts, delay=delay,
+            after_success=True
         )
 
     def wait_on_complete(
         self, max_attempts: Optional[int] = None, delay: Optional[int] = None
     ) -> batch.type_defs.JobDetailTypeDef:
-        """Wait until the job completes and returns the job's status.
-
-        The job may succeed or fail.
+        """Waits for the given states with associated success or failure.
 
         Args:
             max_attempts: the maximum # of attempts until reaching the given state.
             delay: the delay before waiting
         """
-        return self._wait_on_names(
-            names=["job-exists", "job-running", "job-complete"],
+        return self.wait_on(
+            status_to_state={Status.Succeeded: True, Status.Failed: True},
             max_attempts=max_attempts,
             delay=delay,
+            after_success=False
         )

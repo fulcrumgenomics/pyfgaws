@@ -460,6 +460,14 @@ python-versions = "*"
 version = "0.4.3"
 
 [[package]]
+category = "main"
+description = "Generate Random Names for anything"
+name = "namegenerator"
+optional = false
+python-versions = "*"
+version = "1.0.6"
+
+[[package]]
 category = "dev"
 description = "Core utilities for Python packages"
 name = "packaging"
@@ -667,7 +675,7 @@ python-versions = "*"
 version = "0.2.2"
 
 [metadata]
-content-hash = "13021883f5fed78c12eb7985dc74a0385da949a80ad0e30dddc853923c342b39"
+content-hash = "fd261a1a0a6420670811e9c2d6899f3b6ca760c90fed41df26f5b9d6cb09b9c0"
 python-versions = "^3.8"
 
 [metadata.files]
@@ -791,6 +799,9 @@ mypy-boto3-logs = [
 mypy-extensions = [
     {file = "mypy_extensions-0.4.3-py2.py3-none-any.whl", hash = "sha256:090fedd75945a69ae91ce1303b5824f428daf5a028d2f6ab8a299250a846f15d"},
     {file = "mypy_extensions-0.4.3.tar.gz", hash = "sha256:2d82818f5bb3e369420cb3c4060a7970edba416647068eb4c5343488a6c604a8"},
+]
+namegenerator = [
+    {file = "namegenerator-1.0.6.tar.gz", hash = "sha256:144759c62d771e5b589514a0aa332d0b967818c0a24b7824e48a905357c58bfa"},
 ]
 packaging = [
     {file = "packaging-20.4-py2.py3-none-any.whl", hash = "sha256:998416ba6962ae7fbd6596850b80e17859a5753ba17c32284f67bfff33784181"},
