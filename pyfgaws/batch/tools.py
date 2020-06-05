@@ -32,6 +32,8 @@ def _log_it(region_name: str, job: BatchJob, logger: logging.Logger) -> None:
         job: the AWS batch job
         logger: the logger to which logs should be printed
     """
+    if job.stream is None:
+        return None
     # Create a background thread
     logs_thread = threading.Thread(
         target=_watch_logs, args=(region_name, job, logger), daemon=True
