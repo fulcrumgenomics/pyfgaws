@@ -103,7 +103,7 @@ def build_describe_jobs_response(status: Status) -> DescribeJobsResponseTypeDef:
                 "jobQueue": "job-queue",
                 "jobDefinition": "arn:aws:batch:some-arn",
                 "startedAt": 1,
-                "status": status.value,
+                "status": status.status,
             }
         ]
     }
@@ -118,23 +118,23 @@ def build_describe_jobs_responses(*status: Status) -> List[DescribeJobsResponseT
     "statuses",
     [
         [Status.Succeeded],
-        # [Status.Failed],
-        # [
-        #     Status.Submitted,
-        #     Status.Pending,
-        #     Status.Runnable,
-        #     Status.Runnable,
-        #     Status.Running,
-        #     Status.Succeeded,
-        # ],
-        # [
-        #     Status.Submitted,
-        #     Status.Pending,
-        #     Status.Runnable,
-        #     Status.Runnable,
-        #     Status.Running,
-        #     Status.Failed,
-        # ],
+        [Status.Failed],
+        [
+            Status.Submitted,
+            Status.Pending,
+            Status.Runnable,
+            Status.Runnable,
+            Status.Running,
+            Status.Succeeded,
+        ],
+        [
+            Status.Submitted,
+            Status.Pending,
+            Status.Runnable,
+            Status.Runnable,
+            Status.Running,
+            Status.Failed,
+        ],
     ],
 )
 def test_wait_for_job(statuses: List[Status]) -> None:
