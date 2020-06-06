@@ -25,7 +25,7 @@ jobs:
         poetry install
     - name: Run pytest
       run: |
-        poetry run python -m pytest --cov=pyfgaws --cov-branch
+        poetry run python -m pytest --cov=pyfgaws --cov-report=xml --cov-branch 
     - name: Style checking
       run: |
         poetry run black --line-length 99 --check pyfgaws
@@ -35,3 +35,5 @@ jobs:
     - name: Run mypy
       run: |
         poetry run mypy -p pyfgaws --config=ci/mypy.ini
+    - name: Codecov
+      uses: codecov/codecov-action@v1.0.7
