@@ -145,8 +145,9 @@ def run_job(
         if print_logs and end_status.logs:
             _watch_logs(region_name=region_name, job=job, logger=logger, indefinitely=False)
 
-        logger.info(f"Job name '{job.name}' and id '{job.job_id}' reached status '"
-                    f"{end_status.status}'")
+        logger.info(
+            f"Job name '{job.name}' and id '{job.job_id}' reached status '" f"{end_status.status}'"
+        )
 
 
 def _watch_logs(
