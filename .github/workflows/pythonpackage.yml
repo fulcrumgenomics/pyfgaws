@@ -35,5 +35,5 @@ jobs:
     - name: Run mypy
       run: |
         poetry run mypy -p pyfgaws --config=ci/mypy.ini
-    - name: Codecov
+    - name: Upload code coverage
       uses: codecov/codecov-action@v1.0.7

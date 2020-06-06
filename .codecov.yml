@@ -1,0 +1,19 @@
+coverage:
+  precision: 1
+  round: down
+  status:
+    project:
+      default:
+        enabled: yes
+        target: 75%
+        threshold: 0.25%
+    patch:
+      default:
+        target: auto
+
+comment:
+  layout: "diff"
+  behavior: default
+  require_changes: false
+  require_base: no
+  require_head: yes

@@ -3,6 +3,7 @@
 [![Code Style][code-style-badge]][code-style-link]
 [![Type Checked][type-checking-badge]][type-checking-link]
 [![PEP8][pep-8-badge]][pep-8-link]
+[![Code Coverage][code-coverage-badge]][code-coverage-link]
 [![License][license-badge]][license-link]
 
 ---
@@ -21,6 +22,8 @@
 [type-checking-link]:   http://mypy-lang.org/
 [pep-8-badge]:          https://img.shields.io/badge/code%20style-pep8-brightgreen.svg
 [pep-8-link]:           https://www.python.org/dev/peps/pep-0008/
+[code-coverage-badge]:  https://codecov.io/gh/fulcrumgenomics/pyfgaws/branch/master/graph/badge.svg
+[code-coverage-link]:   https://codecov.io/gh/fulcrumgenomics/pyfgaws
 [license-badge]:        http://img.shields.io/badge/license-MIT-blue.svg
 [license-link]:         https://github.com/fulcrumgenomics/pyfgaws/blob/master/LICENSE
 [python-package-badge]: https://github.com/fulcrumgenomics/pyfgaws/workflows/Python%20package/badge.svg
