@@ -16,20 +16,20 @@ from typing import Union
 import botocore
 import namegenerator
 from botocore.waiter import Waiter as BotoWaiter
-from mypy_boto3 import batch
-from mypy_boto3.batch.type_defs import ArrayPropertiesTypeDef  # noqa
-from mypy_boto3.batch.type_defs import ContainerDetailTypeDef  # noqa
-from mypy_boto3.batch.type_defs import ContainerOverridesTypeDef  # noqa
-from mypy_boto3.batch.type_defs import DescribeJobsResponseTypeDef  # noqa
-from mypy_boto3.batch.type_defs import JobDependencyTypeDef  # noqa
-from mypy_boto3.batch.type_defs import JobDetailTypeDef  # noqa
-from mypy_boto3.batch.type_defs import JobTimeoutTypeDef  # noqa
-from mypy_boto3.batch.type_defs import JobTimeoutTypeDef  # noqa
-from mypy_boto3.batch.type_defs import KeyValuePairTypeDef  # noqa
-from mypy_boto3.batch.type_defs import NodeOverridesTypeDef  # noqa
-from mypy_boto3.batch.type_defs import ResourceRequirementTypeDef  # noqa
-from mypy_boto3.batch.type_defs import RetryStrategyTypeDef  # noqa
-from mypy_boto3.batch.type_defs import SubmitJobResponseTypeDef  # noqa
+import mypy_boto3_batch as batch
+from mypy_boto3_batch.type_defs import ArrayPropertiesTypeDef  # noqa
+from mypy_boto3_batch.type_defs import ContainerDetailTypeDef  # noqa
+from mypy_boto3_batch.type_defs import ContainerOverridesTypeDef  # noqa
+from mypy_boto3_batch.type_defs import DescribeJobsResponseTypeDef  # noqa
+from mypy_boto3_batch.type_defs import JobDependencyTypeDef  # noqa
+from mypy_boto3_batch.type_defs import JobDetailTypeDef  # noqa
+from mypy_boto3_batch.type_defs import JobTimeoutTypeDef  # noqa
+from mypy_boto3_batch.type_defs import JobTimeoutTypeDef  # noqa
+from mypy_boto3_batch.type_defs import KeyValuePairTypeDef  # noqa
+from mypy_boto3_batch.type_defs import NodeOverridesTypeDef  # noqa
+from mypy_boto3_batch.type_defs import ResourceRequirementTypeDef  # noqa
+from mypy_boto3_batch.type_defs import RetryStrategyTypeDef  # noqa
+from mypy_boto3_batch.type_defs import SubmitJobResponseTypeDef  # noqa
 
 # The possible values of Status, for type checking
 StatusValue = Union[

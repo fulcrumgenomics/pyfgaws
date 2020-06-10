@@ -12,11 +12,11 @@ from typing import List
 from typing import Optional
 
 import boto3
-from mypy_boto3 import batch
-from mypy_boto3 import logs
-from mypy_boto3.batch.type_defs import DescribeJobsResponseTypeDef  # noqa
-from mypy_boto3.batch.type_defs import KeyValuePairTypeDef  # noqa
-from mypy_boto3.batch.type_defs import SubmitJobResponseTypeDef  # noqa
+import mypy_boto3_batch as batch
+import mypy_boto3_logs as logs
+from mypy_boto3_batch.type_defs import DescribeJobsResponseTypeDef  # noqa
+from mypy_boto3_batch.type_defs import KeyValuePairTypeDef  # noqa
+from mypy_boto3_batch.type_defs import SubmitJobResponseTypeDef  # noqa
 
 from pyfgaws.batch import BatchJob
 from pyfgaws.batch import Status
