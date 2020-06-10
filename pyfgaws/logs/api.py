@@ -7,7 +7,7 @@ import queue
 from typing import Iterator
 from typing import Optional
 
-from mypy_boto3 import logs
+import mypy_boto3_logs as logs
 
 # The number of seconds to wait to poll for a job's status
 DEFAULT_POLLING_INTERVAL: int = 5

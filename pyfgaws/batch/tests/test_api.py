@@ -6,10 +6,10 @@ from typing import Optional
 import botocore.session
 import pytest
 from botocore.stub import Stubber
-from mypy_boto3.batch import Client
-from mypy_boto3.batch.type_defs import DescribeJobDefinitionsResponseTypeDef  # noqa
-from mypy_boto3.batch.type_defs import DescribeJobsResponseTypeDef  # noqa
-from mypy_boto3.batch.type_defs import SubmitJobResponseTypeDef  # noqa
+from mypy_boto3_batch import Client
+from mypy_boto3_batch.type_defs import DescribeJobDefinitionsResponseTypeDef  # noqa
+from mypy_boto3_batch.type_defs import DescribeJobsResponseTypeDef  # noqa
+from mypy_boto3_batch.type_defs import SubmitJobResponseTypeDef  # noqa
 from py._path.local import LocalPath as TmpDir
 
 from pyfgaws.batch import BatchJob

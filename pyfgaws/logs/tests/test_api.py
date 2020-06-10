@@ -3,8 +3,8 @@
 from typing import List
 
 import pytest
-from mypy_boto3.logs import Client
-from mypy_boto3.logs.type_defs import GetLogEventsResponseTypeDef  # noqa
+from mypy_boto3_logs import Client
+from mypy_boto3_logs.type_defs import GetLogEventsResponseTypeDef  # noqa
 
 from pyfgaws.logs import Log
 from pyfgaws.tests import stubbed_client

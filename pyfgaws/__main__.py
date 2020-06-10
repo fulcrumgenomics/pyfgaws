@@ -14,7 +14,7 @@ from pyfgaws.batch.tools import run_job
 from pyfgaws.batch.tools import watch_job
 from pyfgaws.batch import Status
 from pyfgaws.logs.tools import watch_logs
-from mypy_boto3.batch.type_defs import KeyValuePairTypeDef as BatchKeyValuePairTypeDef  # noqa
+from mypy_boto3_batch.type_defs import KeyValuePairTypeDef as BatchKeyValuePairTypeDef  # noqa
 
 
 # The list of tools to expose on the command line
