@@ -9,7 +9,9 @@ import sys
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Literal
 from typing import Optional
+from typing import Union
 
 import botocore
 import namegenerator
@@ -29,16 +31,44 @@ from mypy_boto3.batch.type_defs import ResourceRequirementTypeDef  # noqa
 from mypy_boto3.batch.type_defs import RetryStrategyTypeDef  # noqa
 from mypy_boto3.batch.type_defs import SubmitJobResponseTypeDef  # noqa
 
+# The possible values of Status, for type checking
+StatusValue = Union[
+    Literal["SUBMITTED"],
+    Literal["PENDING"],
+    Literal["RUNNABLE"],
+    Literal["STARTING"],
+    Literal["RUNNING"],
+    Literal["SUCCEEDED"],
+    Literal["FAILED"],
+]
+
 
 @enum.unique
 class Status(enum.Enum):
-    Submitted = "SUBMITTED"
-    Pending = "PENDING"
-    Runnable = "RUNNABLE"
-    Starting = "STARTING"
-    Running = "RUNNING"
-    Succeeded = "SUCCEEDED"
-    Failed = "FAILED"
+    """Enumeration for statuses of an AWS Batch Job.
+
+    Attributes:
+        status (str): The status string of the AWS Batch Job
+        logs (bool): True if this status has CloudWatch logs, False otherwise.
+    """
+
+    Submitted = ("SUBMITTED", False)
+    Pending = ("PENDING", False)
+    Runnable = ("RUNNABLE", False)
+    Starting = ("STARTING", False)
+    Running = ("RUNNING", True)
+    Succeeded = ("SUCCEEDED", True)
+    Failed = ("FAILED", True)
+
+    def __init__(self, status: StatusValue, logs: bool) -> None:
+        self.status: StatusValue = status
+        self.logs: bool = logs
+
+    @staticmethod
+    def from_string(status: StatusValue) -> "Status":
+        """Builds a status from a string, case insensitive."""
+        status_lower = status.lower()
+        return next(s for s in Status if s.status.lower() == status_lower)
 
 
 def get_latest_job_definition_arn(client: batch.Client, job_definition: str) -> str:
@@ -246,7 +276,7 @@ class BatchJob:
         if self.job_id is None:
             return None
         else:
-            return Status(self.describe_job()["status"])
+            return Status.from_string(self.describe_job()["status"])
 
     def describe_job(self) -> JobDetailTypeDef:
         """Gets detauled information about this job."""
@@ -300,7 +330,7 @@ class BatchJob:
             elif set_to_failure:
                 _status_to_state[status] = after_success
 
-        name = "Waiter for statues: [" + ",".join(s.value for s in _status_to_state) + "]"
+        name = "Waiter for statues: [" + ",".join(s.status for s in _status_to_state) + "]"
         config: Dict[str, Any] = {"version": 2}
         waiter_body: Dict[str, Any] = {
             "delay": 1 if delay is None else delay,
@@ -309,7 +339,7 @@ class BatchJob:
             "acceptors": [
                 {
                     "argument": "jobs[].status",
-                    "expected": f"{status.value}",
+                    "expected": f"{status.status}",
                     "matcher": "pathAll",
                     "state": f"""{"success" if state else "failure"}""",
                 }

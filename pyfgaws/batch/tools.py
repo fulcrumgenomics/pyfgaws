@@ -63,8 +63,9 @@ def watch_job(*, job_id: str, region_name: Optional[str] = None, print_logs: boo
         _log_it(region_name=region_name, job=job, logger=logger)
 
     job.wait_on_complete()
+    end_status = job.get_status()
     logger.info(
-        f"Job completed with name '{job.name}', id '{job.job_id}', and status '{job.get_status()}'"
+        f"Job completed with name '{job.name}', id '{job.job_id}', and status '{end_status}'"
     )
 
 
@@ -141,8 +142,13 @@ def run_job(
             status_to_state=dict((status, True) for status in watch_until),
             after_success=after_success,
         )
+        end_status: Status = job.get_status()
+
+        if print_logs and end_status.logs:
+            _watch_logs(region_name=region_name, job=job, logger=logger, indefinitely=False)
+
         logger.info(
-            f"Job name '{job.name}' and id '{job.job_id}' reached status '{job.get_status()}'"
+            f"Job name '{job.name}' and id '{job.job_id}' reached status '" f"{end_status.status}'"
         )
 
 
@@ -151,8 +157,9 @@ def _watch_logs(
     job: BatchJob,
     logger: logging.Logger,
     polling_interval: int = DEFAULT_LOGS_POLLING_INTERVAL,
+    indefinitely: bool = True,
 ) -> None:
-    """A method to watch logs indefinitely.
+    """A method to watch logs.
 
     Args:
         region_name: the AWS region
@@ -160,6 +167,7 @@ def _watch_logs(
         logger: the logger to which logs should be printed
         polling_interval: the default time to wait for new CloudWatch logs after no more logs are
             returned
+        indefinitely: true to watch indefinitely, false to print only the available logs
     """
     # wait until it's running to get the CloudWatch logs
     job.wait_on_running()
@@ -169,8 +177,14 @@ def _watch_logs(
     )
     log: Log = Log(client=client, group="/aws/batch/job", stream=job.stream)
 
-    while True:
-        for line in log:
-            logger.info(line)
-        time.sleep(polling_interval)
-        log.reset()
+    try:
+        while True:
+            for line in log:
+                logger.info(line)
+            time.sleep(polling_interval)
+            log.reset()
+            if not indefinitely:
+                break
+    except Exception as ex:
+        logger.error(f"Encountered an exception while watching logs: {ex}")
+        raise ex
