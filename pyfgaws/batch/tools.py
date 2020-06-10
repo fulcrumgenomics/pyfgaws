@@ -184,5 +184,5 @@ def _watch_logs(
             if not indefinitely:
                 break
     except Exception as ex:
-        logger.warning(f"Encountered an exception while watching logs: {ex}")
+        logger.error(f"Encountered an exception while watching logs: {ex}")
         raise ex
