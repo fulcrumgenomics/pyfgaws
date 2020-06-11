@@ -47,7 +47,7 @@ Conda is used to install a specific version of python and [poetry](https://githu
  ). Then run:
 
 ```
-conda create -n pyfgaws -c bioconda --file conda-requirements.txt
+conda create -n pyfgaws -c conda-forge -c bioconda --file conda-requirements.txt
 ```
 
 Then activate the new environment and install the toolkit:
