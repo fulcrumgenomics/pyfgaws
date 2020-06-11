@@ -279,7 +279,7 @@ class BatchJob:
         add_to_kwargs(key="retryStrategy", value=self.retry_strategy)
         add_to_kwargs(key="timeout", value=self.timeout)
 
-        return self.client.submit_job(
+        response = self.client.submit_job(
             jobName=self.name,
             jobQueue=self.queue,
             jobDefinition=self.job_definition_arn,
@@ -292,6 +292,11 @@ class BatchJob:
             # retryStrategy=self.retry_strategy,
             # timeout=None,
         )
+
+        # Don't forget to set the job id
+        self.job_id = response["jobId"]
+
+        return response
 
     def _reason(self, reason: Optional[str] = None) -> str:
         """The default reason for cancelling or terminating a job"""
