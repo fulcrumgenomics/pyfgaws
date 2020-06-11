@@ -86,6 +86,17 @@ def get_latest_job_definition_arn(client: batch.Client, job_definition: str) -> 
     return latest["jobDefinitionArn"]
 
 
+# Valid keys for ContainerOverridesTypeDef
+_ContainerOverridesTypes = Union[
+    Literal["vcpus"],
+    Literal["memory"],
+    Literal["command"],
+    Literal["instanceType"],
+    Literal["environment"],
+    Literal["resourceRequirements"],
+]
+
+
 class BatchJob:
     """Stores information about a batch job.
 
@@ -142,6 +153,7 @@ class BatchJob:
         self.client: batch.Client = client
 
         # Get the latest job definition ARN if not given
+        self.job_definition_arn: str
         if job_definition.startswith("arn:aws:batch:"):
             if logger is not None:
                 logger.info(f"Using provided job definition '{job_definition}'")
@@ -158,35 +170,36 @@ class BatchJob:
         # Main arguments
         self.name: str = namegenerator.gen() if name is None else name
         self.queue: str = queue
-        self.array_properties: ArrayPropertiesTypeDef = (
-            {} if array_properties is None else array_properties
+        self.array_properties: Optional[ArrayPropertiesTypeDef] = array_properties
+        self.depends_on: Optional[List[JobDependencyTypeDef]] = copy.deepcopy(depends_on)
+        self.parameters: Optional[Dict[str, Any]] = copy.deepcopy(parameters)
+        self.container_overrides: Optional[ContainerOverridesTypeDef] = (
+            copy.deepcopy(container_overrides)
         )
-        self.depends_on: List[JobDependencyTypeDef] = (
-            [] if depends_on is None else copy.deepcopy(depends_on)
-        )
-        self.parameters = {} if parameters is None else copy.deepcopy(parameters)
-        self.container_overrides = (
-            {} if container_overrides is None else copy.deepcopy(container_overrides)
-        )
-        self.node_overrides: NodeOverridesTypeDef = {} if node_overrides is None else node_overrides
-        self.retry_strategy: RetryStrategyTypeDef = {} if retry_strategy is None else retry_strategy
-        self.timeout: JobTimeoutTypeDef = {} if timeout is None else timeout
+        self.node_overrides: Optional[NodeOverridesTypeDef] = node_overrides
+        self.retry_strategy: Optional[RetryStrategyTypeDef] = retry_strategy
+        self.timeout: Optional[JobTimeoutTypeDef] = timeout
 
         # Add to container overrides
-        if cpus is not None:
-            self.container_overrides["vcpus"] = cpus
-        if mem_mb is not None:
-            self.container_overrides["memory"] = mem_mb
-        if command is not None:
-            self.container_overrides["command"] = copy.deepcopy(command)
-        if instance_type is not None:
-            self.container_overrides["instanceType"] = instance_type
-        if environment is not None:
-            self.container_overrides["environment"] = copy.deepcopy(environment)
-        if resource_requirements is not None:
-            self.container_overrides["resourceRequirements"] = copy.deepcopy(resource_requirements)
+        self._add_to_container_overrides(key="vcpus", value=cpus)
+        self._add_to_container_overrides(key="memory", value=mem_mb)
+        self._add_to_container_overrides(key="command", value=copy.deepcopy(command))
+        self._add_to_container_overrides(key="instanceType", value=instance_type)
+        self._add_to_container_overrides(key="environment", value=copy.deepcopy(environment))
+        self._add_to_container_overrides(
+            key="resourceRequirements", value=copy.deepcopy(resource_requirements)
+        )
 
         self.job_id: Optional[str] = None
+
+    def _add_to_container_overrides(
+        self, key: _ContainerOverridesTypes, value: Optional[Any]
+    ) -> None:
+        """Adds the given value to the container overrides for the given key"""
+        if value is not None:
+            if self.container_overrides is None:
+                self.container_overrides = {}
+            self.container_overrides[key] = value
 
     @classmethod
     def from_id(cls, client: batch.Client, job_id: str) -> "BatchJob":
@@ -206,31 +219,34 @@ class BatchJob:
 
         # Treat container overrides specially
         container: ContainerDetailTypeDef = job_info.get("container", {})
-        container_overrides: ContainerOverridesTypeDef = {}
-        if "vpus" in container:
-            container_overrides["vcpus"] = container["vcpus"]
-        if "memory" in container:
-            container_overrides["memory"] = container["memory"]
-        if "command" in container:
-            container_overrides["command"] = container["command"]
-        if "instanceType" in container:
-            container_overrides["instanceType"] = container["instanceType"]
-        if "environment" in container:
-            container_overrides["environment"] = container["environment"]
-        if "resourceRequirements" in container:
-            container_overrides["resourceRequirements"] = container["resourceRequirements"]
+        container_overrides: Optional[ContainerOverridesTypeDef] = None
+
+        def add_to_container_overrides(key: _ContainerOverridesTypes) -> None:
+            nonlocal container_overrides
+            nonlocal container
+            if key in container:
+                if container_overrides is None:
+                    container_overrides = {}
+                container_overrides[key] = container[key]
+
+        add_to_container_overrides(key="vcpus")
+        add_to_container_overrides(key="memory")
+        add_to_container_overrides(key="command")
+        add_to_container_overrides(key="instanceType")
+        add_to_container_overrides(key="environment")
+        add_to_container_overrides(key="resourceRequirements")
 
         job: BatchJob = BatchJob(
             client=client,
             name=job_info["jobName"],
             queue=job_info["jobQueue"],
             job_definition=job_info["jobDefinition"],
-            array_properties=job_info.get("arrayProperties", {}),
-            depends_on=job_info.get("dependsOn", []),
-            parameters=job_info.get("parameters", {}),
+            array_properties=job_info.get("arrayProperties"),
+            depends_on=job_info.get("dependsOn"),
+            parameters=job_info.get("parameters"),
             container_overrides=container_overrides,
-            retry_strategy=job_info.get("retryStrategy", {}),
-            timeout=job_info.get("timeout", {}),
+            retry_strategy=job_info.get("retryStrategy"),
+            timeout=job_info.get("timeout"),
         )
 
         job.job_id = job_id
@@ -244,17 +260,37 @@ class BatchJob:
 
     def submit(self) -> SubmitJobResponseTypeDef:
         """Submits this job."""
+
+        # If we have arguments that are None, then we have **not** include them as keyword
+        # arguments
+        # See: https://github.com/vemel/mypy_boto3_builder/issues/30
+        # See: https://github.com/boto/botocore/issues/2075
+        kwargs: Dict[str, Any] = {}
+
+        def add_to_kwargs(key: str, value: Optional[Any]) -> None:
+            if value is not None:
+                kwargs[key] = value
+
+        add_to_kwargs(key="arrayProperties", value=self.array_properties)
+        add_to_kwargs(key="dependsOn", value=self.depends_on)
+        add_to_kwargs(key="containerOverrides", value=self.container_overrides)
+        add_to_kwargs(key="parameters", value=self.parameters)
+        add_to_kwargs(key="nodeOverrides", value=self.node_overrides)
+        add_to_kwargs(key="retryStrategy", value=self.retry_strategy)
+        add_to_kwargs(key="timeout", value=self.timeout)
+
         return self.client.submit_job(
             jobName=self.name,
             jobQueue=self.queue,
-            arrayProperties=self.array_properties,
-            dependsOn=self.depends_on,
             jobDefinition=self.job_definition_arn,
-            parameters=self.parameters,
-            containerOverrides=self.container_overrides,
-            nodeOverrides=self.node_overrides,
-            retryStrategy=self.retry_strategy,
-            timeout=self.timeout,
+            **kwargs,
+            # arrayProperties=self.array_properties,
+            # dependsOn=self.depends_on,
+            # containerOverrides=self.container_overrides,
+            # parameters=self.parameters,
+            # nodeOverrides=self.node_overrides,
+            # retryStrategy=self.retry_strategy,
+            # timeout=None,
         )
 
     def _reason(self, reason: Optional[str] = None) -> str:
