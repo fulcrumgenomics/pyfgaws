@@ -36,7 +36,7 @@ def _parsers() -> Dict[type, Callable[[str], Any]]:
     return {
         Dict[str, Any]: lambda string: json.loads(string),
         BatchKeyValuePairTypeDef: _parse_key_value_pair_type,
-        Status: lambda string: Status.from_string(string),
+        Status: lambda string: Status.from_string(string),  # type: ignore
     }
 
 
