@@ -4,6 +4,7 @@ Command-line tools for interacting with AWS Batch
 """
 
 import logging
+import signal
 import threading
 import time
 from typing import Any
@@ -83,6 +84,8 @@ def run_job(
     environment: Optional[KeyValuePairTypeDef] = None,
     watch_until: List[Status] = [],
     after_success: bool = False,
+    cancel_on_interrupt: bool = False,
+    terminate_on_interrupt: bool = False,
 ) -> None:
     """Submits a batch job and optionally waits for it to reach one of the given states.
 
@@ -105,11 +108,27 @@ def run_job(
             See the `--after-success` option to control this behavior.
         after_success: true to treat states after the `watch_until` states as success, otherwise
             failure.
+        cancel_on_interrupt: true to cancel the job if SIGINT or SIGTERM is encountered,
+            false otherwise.  Requires `--watch-until` to be specified.
+        terminate_on_interrupt: true to cancel the job if SIGINT or SIGTERM is encountered,
+            false otherwise.  Requires `--watch-until` to be specified.
     """
     logger = logging.getLogger(__name__)
 
+    assert watch_until or not cancel_on_interrupt, "--cancel-on-interrupt requires --watch-until"
+    assert (
+        watch_until or not terminate_on_interrupt
+    ), "--terminate-on-interrupt requires --watch-until"
+
     batch_client: batch.Client = boto3.client(
         service_name="batch", region_name=region_name  # type: ignore
+    )
+
+    cancel_on: Optional[List[int]] = (
+        [signal.SIGINT, signal.SIGTERM] if cancel_on_interrupt and watch_until else None
+    )
+    terminate_on: Optional[List[int]] = (
+        [signal.SIGINT, signal.SIGTERM] if terminate_on_interrupt and watch_until else None
     )
 
     job = BatchJob(
@@ -123,6 +142,8 @@ def run_job(
         environment=None if environment is None else [environment],
         parameters=parameters,
         logger=logger,
+        cancel_on=cancel_on,
+        terminate_on=terminate_on,
     )
 
     # Submit the job
