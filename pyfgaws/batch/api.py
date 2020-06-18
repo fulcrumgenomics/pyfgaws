@@ -5,6 +5,7 @@ Utility methods for interacting with AWS Batch
 import copy
 import enum
 import logging
+import signal
 import sys
 from typing import Any
 from typing import Dict
@@ -14,9 +15,9 @@ from typing import Optional
 from typing import Union
 
 import botocore
+import mypy_boto3_batch as batch
 import namegenerator
 from botocore.waiter import Waiter as BotoWaiter
-import mypy_boto3_batch as batch
 from mypy_boto3_batch.type_defs import ArrayPropertiesTypeDef  # noqa
 from mypy_boto3_batch.type_defs import ContainerDetailTypeDef  # noqa
 from mypy_boto3_batch.type_defs import ContainerOverridesTypeDef  # noqa
@@ -126,6 +127,9 @@ class BatchJob:
         retry_strategy: the retry strategy to use for failed jobs from the `submit_job` operation.
         timeout: the timeout configuration
         logger: logger to write status messages
+        cancel_on: cancel a submitted batch job if one of the given signals are encountered.
+        terminate_on: terminate a submitted batch job if one of the given signals are
+            encountered; this will take precedence over cancel.
     """
 
     def __init__(
@@ -148,6 +152,8 @@ class BatchJob:
         retry_strategy: Optional[RetryStrategyTypeDef] = None,
         timeout: Optional[JobTimeoutTypeDef] = None,
         logger: Optional[logging.Logger] = None,
+        cancel_on: Optional[List[int]] = None,
+        terminate_on: Optional[List[int]] = None,
     ) -> None:
 
         self.client: batch.Client = client
@@ -192,6 +198,9 @@ class BatchJob:
 
         self.job_id: Optional[str] = None
 
+        self.cancel_on: Optional[List[int]] = cancel_on
+        self.terminate_on: Optional[List[int]] = terminate_on
+
     def _add_to_container_overrides(
         self, key: _ContainerOverridesTypes, value: Optional[Any]
     ) -> None:
@@ -202,7 +211,13 @@ class BatchJob:
             self.container_overrides[key] = value
 
     @classmethod
-    def from_id(cls, client: batch.Client, job_id: str) -> "BatchJob":
+    def from_id(
+        cls,
+        client: batch.Client,
+        job_id: str,
+        cancel_on: Optional[List[int]] = None,
+        terminate_on: Optional[List[int]] = None,
+    ) -> "BatchJob":
         """"Builds a batch job from the given ID.
 
         Will lookup the job to retrieve job information.
@@ -210,6 +225,9 @@ class BatchJob:
         Args:
             client: the AWS batch client
             job_id: the job identifier
+            cancel_on: cancel a submitted batch job if one of the given signals are encountered.
+            terminate_on: terminate a submitted batch job if one of the given signals are
+                encountered; this will take precedence over cancel.
         """
         jobs_response = client.describe_jobs(jobs=[job_id])
         jobs = jobs_response["jobs"]
@@ -247,6 +265,8 @@ class BatchJob:
             container_overrides=container_overrides,
             retry_strategy=job_info.get("retryStrategy"),
             timeout=job_info.get("timeout"),
+            cancel_on=cancel_on,
+            terminate_on=terminate_on,
         )
 
         job.job_id = job_id
@@ -342,6 +362,7 @@ class BatchJob:
         max_attempts: Optional[int] = None,
         delay: Optional[int] = None,
         after_success: bool = False,
+        terminate_on_signal: bool = False,
     ) -> batch.type_defs.JobDetailTypeDef:
         """Waits for the given states with associated success or failure.
 
@@ -352,6 +373,8 @@ class BatchJob:
             status_to_state: mapping of status to success (true) or failure (false) state
             max_attempts: the maximum # of attempts until reaching the given state.
             delay: the delay before waiting
+            after_success: true to treat all status after the last successful input status are
+                treated as success, otherwise failure.
         """
         assert len(status_to_state) > 0, "No statuses given"
         assert any(value for value in status_to_state.values()), "No statuses with success set."
@@ -391,6 +414,19 @@ class BatchJob:
         model: botocore.waiter.WaiterModel = botocore.waiter.WaiterModel(config)
         waiter: BotoWaiter = botocore.waiter.create_waiter_with_client(name, model, self.client)
         waiter.wait(jobs=[self.job_id])
+
+        if self.cancel_on is not None:
+            for code in self.cancel_on:
+                signal.signal(
+                    code, lambda signum, frame: self.cancel_job(reason=f"Interrupted: {code}")
+                )
+
+        if self.terminate_on is not None:
+            for code in self.terminate_on:
+                signal.signal(
+                    code, lambda signum, frame: self.terminate_job(reason=f"Interrupted: {code}")
+                )
+
         return self.describe_job()
 
     def wait_on_running(
