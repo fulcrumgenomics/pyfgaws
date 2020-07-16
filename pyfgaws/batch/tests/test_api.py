@@ -157,6 +157,6 @@ def test_wait_for_job(statuses: List[Status]) -> None:
 
     job: BatchJob = BatchJob.from_id(client=client, job_id="job-id")
     assert job.job_id is not None, str(job)
-    response = job.wait_on_complete(delay=0.0001)
+    response = job.wait_on_complete(delay=0, minimum_delay=0, delay_width=0.0001)
 
     assert response == service_responses[-1]["jobs"][0], str(response)

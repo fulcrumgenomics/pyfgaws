@@ -4,11 +4,14 @@ from typing import Union
 # The minimum delay in seconds between batch job API requests
 MINIMUM_DELAY: int = 1
 
+# The default jitter width for adding jitter to the delay
+DEFAULT_JITTER_WIDTH: int = 2
+
 
 def add_jitter(
     delay: Union[int, float] = 0,
-    width: Union[int, float] = 1,
-    minima: Union[int, float] = MINIMUM_DELAY,
+    width: Union[int, float] = DEFAULT_JITTER_WIDTH,
+    minima: Union[int, float] = 0,
 ) -> float:
     """Apply a jitter to the delay, to help avoid AWS batch API limits for monitoring batch
     jobs in the cases of many requests across concurrent jobs.
@@ -23,8 +26,8 @@ def add_jitter(
     """
     assert width > 0, f"Width must be > 0: {width}"
     assert minima >= 0, f"Minima must be >= 0: {minima}"
-    delay = max(minima, delay)
-    lower = delay - width
-    upper = delay + width
+    delay = max(0, delay)
+    lower = max(minima, delay - width)
+    upper = lower + (2 * width)
     assert upper >= lower
-    return max(uniform(lower, upper), minima)
+    return uniform(lower, upper)

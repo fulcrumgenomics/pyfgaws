@@ -13,7 +13,7 @@ def test_add_jitter() -> None:
                     label: str = f"add_jitter(delay={delay}, width={width}, minima={minima})"
                     assert jittered >= minima, label
                     assert jittered >= delay - width, label
-                    assert jittered <= max(minima, delay) + width, label
+                    assert jittered <= max(minima, delay - width) + (2 * width), label
 
 
 def test_add_jitter_bad_args() -> None:

@@ -50,9 +50,9 @@ def watch_job(
 ) -> None:
     """Watches an AWS batch job.
 
-    This tool enforces a minimum delay of 1 second, then adds a small random jitter
-    (+/-2 seconds) to the delay to help avoid AWS batch API limits for monitoring batch jobs
-    in the cases of many requests across concurrent jobs.
+    This tool a small random jitter (+/-2 seconds) to the delay to help avoid AWS batch API
+    limits for monitoring batch jobs in the cases of many requests across concurrent jobs.  A
+    minimum delay of 1 second is subsequently applied.
 
     Args:
         job_id: the AWS batch job identifier
@@ -99,9 +99,9 @@ def run_job(
 ) -> None:
     """Submits a batch job and optionally waits for it to reach one of the given states.
 
-    This tool enforces a minimum delay of 1 second, then adds a small random jitter
-    (+/-2 seconds) to the delay to help avoid AWS batch API limits for monitoring batch jobs
-    in the cases of many requests across concurrent jobs.
+    This tool a small random jitter (+/-2 seconds) to the delay to help avoid AWS batch API
+    limits for monitoring batch jobs in the cases of many requests across concurrent jobs.  A
+    minimum delay of 1 second is subsequently applied.
 
     Args:
         job_definition: the ARN for the AWS batch job definition, or the name of the job definition
