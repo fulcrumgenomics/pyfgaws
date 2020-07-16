@@ -14,9 +14,9 @@ from typing import Optional
 from typing import Union
 
 import botocore
+import mypy_boto3_batch as batch
 import namegenerator
 from botocore.waiter import Waiter as BotoWaiter
-import mypy_boto3_batch as batch
 from mypy_boto3_batch.type_defs import ArrayPropertiesTypeDef  # noqa
 from mypy_boto3_batch.type_defs import ContainerDetailTypeDef  # noqa
 from mypy_boto3_batch.type_defs import ContainerOverridesTypeDef  # noqa
@@ -30,6 +30,9 @@ from mypy_boto3_batch.type_defs import NodeOverridesTypeDef  # noqa
 from mypy_boto3_batch.type_defs import ResourceRequirementTypeDef  # noqa
 from mypy_boto3_batch.type_defs import RetryStrategyTypeDef  # noqa
 from mypy_boto3_batch.type_defs import SubmitJobResponseTypeDef  # noqa
+
+from pyfgaws.util import MINIMUM_DELAY
+from pyfgaws.util import add_jitter
 
 # The possible values of Status, for type checking
 StatusValue = Union[
@@ -166,6 +169,7 @@ class BatchJob:
             )
             if logger is not None:
                 logger.info(f"Retrieved latest job definition '{job_definition}'")
+        self._logger: Optional[logging.Logger] = logger
 
         # Main arguments
         self.name: str = namegenerator.gen() if name is None else name
@@ -340,13 +344,17 @@ class BatchJob:
         self,
         status_to_state: Dict[Status, bool],
         max_attempts: Optional[int] = None,
-        delay: Optional[int] = None,
+        delay: Optional[Union[int, float]] = None,
         after_success: bool = False,
     ) -> batch.type_defs.JobDetailTypeDef:
         """Waits for the given states with associated success or failure.
 
         If some states are missing from the input mapping, then all statuses after the last
-        successful input status are treated as success or failure based on `after_success`
+        successful input status are treated as success or failure based on `after_success`.
+
+        This method adds a small random jitter (+/-2 seconds) to the delay, enforcing a minimum
+        delay of 1 second, to help avoid AWS batch API limits for monitoring batch jobs in the
+        cases of many requests across concurrent jobs.
 
         Args:
             status_to_state: mapping of status to success (true) or failure (false) state
@@ -373,8 +381,14 @@ class BatchJob:
 
         name = "Waiter for statues: [" + ",".join(s.status for s in _status_to_state) + "]"
         config: Dict[str, Any] = {"version": 2}
+
+        actual_delay: Union[int, float] = MINIMUM_DELAY if delay is None else delay
+        actual_delay = add_jitter(delay=actual_delay, width=2, minima=MINIMUM_DELAY)
+        if self._logger is not None:
+            self._logger.debug("Changing delay from {delay} to {actual_delay}")
+
         waiter_body: Dict[str, Any] = {
-            "delay": 1 if delay is None else delay,
+            "delay": actual_delay,
             "operation": "DescribeJobs",
             "maxAttempts": sys.maxsize if max_attempts is None else max_attempts,
             "acceptors": [
@@ -394,9 +408,13 @@ class BatchJob:
         return self.describe_job()
 
     def wait_on_running(
-        self, max_attempts: Optional[int] = None, delay: Optional[int] = None
+        self, max_attempts: Optional[int] = None, delay: Optional[Union[int, float]] = None
     ) -> batch.type_defs.JobDetailTypeDef:
         """Waits for the given states with associated success or failure.
+
+        This method adds a small random jitter (+/-2 seconds) to the delay, enforcing a minimum
+        delay of 1 second, to help avoid AWS batch API limits for monitoring batch jobs in the
+        cases of many requests across concurrent jobs.
 
         Args:
             max_attempts: the maximum # of attempts until reaching the given state.
@@ -410,9 +428,13 @@ class BatchJob:
         )
 
     def wait_on_complete(
-        self, max_attempts: Optional[int] = None, delay: Optional[int] = None
+        self, max_attempts: Optional[int] = None, delay: Optional[Union[int, float]] = None
     ) -> batch.type_defs.JobDetailTypeDef:
         """Waits for the given states with associated success or failure.
+
+        This method adds a small random jitter (+/-2 seconds) to the delay, enforcing a minimum
+        delay of 1 second, to help avoid AWS batch API limits for monitoring batch jobs in the
+        cases of many requests across concurrent jobs.
 
         Args:
             max_attempts: the maximum # of attempts until reaching the given state.

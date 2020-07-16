@@ -41,13 +41,25 @@ def _log_it(region_name: str, job: BatchJob, logger: logging.Logger) -> None:
     logs_thread.start()
 
 
-def watch_job(*, job_id: str, region_name: Optional[str] = None, print_logs: bool = True,) -> None:
+def watch_job(
+    *,
+    job_id: str,
+    region_name: Optional[str] = None,
+    print_logs: bool = True,
+    delay: Optional[int] = None,
+) -> None:
     """Watches an AWS batch job.
+
+    A small  random jitter (+/-2 seconds) is added to the delay, enforcing a minimum
+    delay of 1 second, to help avoid AWS batch API limits for monitoring batch jobs in the
+    cases of many requests across concurrent jobs.
 
     Args:
         job_id: the AWS batch job identifier
         region_name: the AWS region
         print_logs: true to print CloudWatch logs, false otherwise
+        delay: the number of seconds to wait after polling for status.  Only used when
+            `--watch-until` is `true`.
     """
     logger = logging.getLogger(__name__)
 
@@ -62,7 +74,7 @@ def watch_job(*, job_id: str, region_name: Optional[str] = None, print_logs: boo
     if print_logs:
         _log_it(region_name=region_name, job=job, logger=logger)
 
-    job.wait_on_complete()
+    job.wait_on_complete(delay=delay)
     end_status = job.get_status()
     logger.info(
         f"Job completed with name '{job.name}', id '{job.job_id}', and status '{end_status}'"
@@ -83,8 +95,13 @@ def run_job(
     environment: Optional[KeyValuePairTypeDef] = None,
     watch_until: List[Status] = [],
     after_success: bool = False,
+    delay: Optional[int] = None,
 ) -> None:
     """Submits a batch job and optionally waits for it to reach one of the given states.
+
+    A small  random jitter (+/-2 seconds) is added to the delay, enforcing a minimum
+    delay of 1 second, to help avoid AWS batch API limits for monitoring batch jobs in the
+    cases of many requests across concurrent jobs.
 
     Args:
         job_definition: the ARN for the AWS batch job definition, or the name of the job definition
@@ -105,6 +122,8 @@ def run_job(
             See the `--after-success` option to control this behavior.
         after_success: true to treat states after the `watch_until` states as success, otherwise
             failure.
+        delay: the number of seconds to wait after polling for status.  Only used when
+            `--watch-until` is `true`.
     """
     logger = logging.getLogger(__name__)
 
@@ -141,6 +160,7 @@ def run_job(
         job.wait_on(
             status_to_state=dict((status, True) for status in watch_until),
             after_success=after_success,
+            delay=delay,
         )
         end_status: Status = job.get_status()
 
