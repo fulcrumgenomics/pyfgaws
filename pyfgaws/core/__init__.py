@@ -23,10 +23,8 @@ def add_jitter(
     """
     assert width > 0, f"Width must be > 0: {width}"
     assert minima >= 0, f"Minima must be >= 0: {minima}"
-    delay = abs(delay)
-    width = abs(width)
-    minima = abs(minima)
-    lower = max(minima, delay - width)
-    upper = max(minima, delay) + width
+    delay = max(minima, delay)
+    lower = delay - width
+    upper = delay + width
     assert upper >= lower
-    return uniform(lower, upper)
+    return max(uniform(lower, upper), minima)
