@@ -31,8 +31,8 @@ from mypy_boto3_batch.type_defs import ResourceRequirementTypeDef  # noqa
 from mypy_boto3_batch.type_defs import RetryStrategyTypeDef  # noqa
 from mypy_boto3_batch.type_defs import SubmitJobResponseTypeDef  # noqa
 
-from pyfgaws.util import MINIMUM_DELAY
-from pyfgaws.util import add_jitter
+from pyfgaws.core import MINIMUM_DELAY
+from pyfgaws.core import add_jitter
 
 # The possible values of Status, for type checking
 StatusValue = Union[
@@ -352,9 +352,9 @@ class BatchJob:
         If some states are missing from the input mapping, then all statuses after the last
         successful input status are treated as success or failure based on `after_success`.
 
-        This method adds a small random jitter (+/-2 seconds) to the delay, enforcing a minimum
-        delay of 1 second, to help avoid AWS batch API limits for monitoring batch jobs in the
-        cases of many requests across concurrent jobs.
+        This method first enforces a minimum delay of 1 second, then adds a small random jitter
+        (+/-2 seconds) to the delay to help avoid AWS batch API limits for monitoring batch jobs
+        in the cases of many requests across concurrent jobs.
 
         Args:
             status_to_state: mapping of status to success (true) or failure (false) state
@@ -412,9 +412,9 @@ class BatchJob:
     ) -> batch.type_defs.JobDetailTypeDef:
         """Waits for the given states with associated success or failure.
 
-        This method adds a small random jitter (+/-2 seconds) to the delay, enforcing a minimum
-        delay of 1 second, to help avoid AWS batch API limits for monitoring batch jobs in the
-        cases of many requests across concurrent jobs.
+        This method first enforces a minimum delay of 1 second, then adds a small random jitter
+        (+/-2 seconds) to the delay to help avoid AWS batch API limits for monitoring batch jobs
+        in the cases of many requests across concurrent jobs.
 
         Args:
             max_attempts: the maximum # of attempts until reaching the given state.
@@ -432,9 +432,9 @@ class BatchJob:
     ) -> batch.type_defs.JobDetailTypeDef:
         """Waits for the given states with associated success or failure.
 
-        This method adds a small random jitter (+/-2 seconds) to the delay, enforcing a minimum
-        delay of 1 second, to help avoid AWS batch API limits for monitoring batch jobs in the
-        cases of many requests across concurrent jobs.
+        This method first enforces a minimum delay of 1 second, then adds a small random jitter
+        (+/-2 seconds) to the delay to help avoid AWS batch API limits for monitoring batch jobs
+        in the cases of many requests across concurrent jobs.
 
         Args:
             max_attempts: the maximum # of attempts until reaching the given state.
