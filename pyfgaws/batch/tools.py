@@ -24,19 +24,23 @@ from pyfgaws.logs import DEFAULT_POLLING_INTERVAL as DEFAULT_LOGS_POLLING_INTERV
 from pyfgaws.logs import Log
 
 
-def _log_it(region_name: str, job: BatchJob, logger: logging.Logger) -> None:
+def _log_it(
+    region_name: str, job: BatchJob, logger: logging.Logger, delay: Optional[int] = None
+) -> None:
     """Creates a background thread to print out CloudWatch logs.
 
     Args:
         region_name: the AWS region
         job: the AWS batch job
         logger: the logger to which logs should be printed
+        delay: the number of seconds to wait after polling for status.  Only used when
+            `--watch-until` is `true`.
     """
     if job.stream is None:
         return None
     # Create a background thread
     logs_thread = threading.Thread(
-        target=_watch_logs, args=(region_name, job, logger), daemon=True
+        target=_watch_logs, args=(region_name, job, logger, delay), daemon=True
     )
     logs_thread.start()
 
@@ -72,7 +76,7 @@ def watch_job(
 
     logger.info(f"Watching job with name '{job.name}' and id '{job.job_id}'")
     if print_logs:
-        _log_it(region_name=region_name, job=job, logger=logger)
+        _log_it(region_name=region_name, job=job, logger=logger, delay=delay)
 
     job.wait_on_complete(delay=delay)
     end_status = job.get_status()
@@ -154,7 +158,7 @@ def run_job(
     # - https://github.com/anntzer/defopt/issues/83
     if len(watch_until) > 0:
         if print_logs:
-            _log_it(region_name=region_name, job=job, logger=logger)
+            _log_it(region_name=region_name, job=job, logger=logger, delay=delay)
 
         # Wait for the job to reach on of the statuses
         job.wait_on(
@@ -176,6 +180,7 @@ def _watch_logs(
     region_name: str,
     job: BatchJob,
     logger: logging.Logger,
+    delay: Optional[int] = None,
     polling_interval: int = DEFAULT_LOGS_POLLING_INTERVAL,
     indefinitely: bool = True,
 ) -> None:
@@ -185,12 +190,14 @@ def _watch_logs(
         region_name: the AWS region
         job: the AWS batch job
         logger: the logger to which logs should be printed
+        delay: the number of seconds to wait after polling for status.  Only used when
+            `--watch-until` is `true`.
         polling_interval: the default time to wait for new CloudWatch logs after no more logs are
             returned
         indefinitely: true to watch indefinitely, false to print only the available logs
     """
     # wait until it's running to get the CloudWatch logs
-    job.wait_on_running()
+    job.wait_on_running(delay=delay)
 
     client: Optional[logs.Client] = boto3.client(
         service_name="logs", region_name=region_name  # type: ignore

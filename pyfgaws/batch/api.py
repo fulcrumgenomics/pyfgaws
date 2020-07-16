@@ -391,6 +391,7 @@ class BatchJob:
 
         minimum_delay = MINIMUM_DELAY if minimum_delay is None else minimum_delay
         delay_width = DEFAULT_JITTER_WIDTH if delay_width is None else delay_width
+        delay = 0 if delay is None else delay
         delay = add_jitter(delay=delay, width=delay_width, minima=minimum_delay)
         if self._logger is not None:
             self._logger.debug("Changing delay from {delay} to {actual_delay}")
