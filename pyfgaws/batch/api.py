@@ -14,9 +14,9 @@ from typing import Optional
 from typing import Union
 
 import botocore
+import mypy_boto3_batch as batch
 import namegenerator
 from botocore.waiter import Waiter as BotoWaiter
-import mypy_boto3_batch as batch
 from mypy_boto3_batch.type_defs import ArrayPropertiesTypeDef  # noqa
 from mypy_boto3_batch.type_defs import ContainerDetailTypeDef  # noqa
 from mypy_boto3_batch.type_defs import ContainerOverridesTypeDef  # noqa
@@ -30,6 +30,10 @@ from mypy_boto3_batch.type_defs import NodeOverridesTypeDef  # noqa
 from mypy_boto3_batch.type_defs import ResourceRequirementTypeDef  # noqa
 from mypy_boto3_batch.type_defs import RetryStrategyTypeDef  # noqa
 from mypy_boto3_batch.type_defs import SubmitJobResponseTypeDef  # noqa
+
+from pyfgaws.core import MINIMUM_DELAY
+from pyfgaws.core import DEFAULT_JITTER_WIDTH
+from pyfgaws.core import add_jitter
 
 # The possible values of Status, for type checking
 StatusValue = Union[
@@ -166,6 +170,7 @@ class BatchJob:
             )
             if logger is not None:
                 logger.info(f"Retrieved latest job definition '{job_definition}'")
+        self._logger: Optional[logging.Logger] = logger
 
         # Main arguments
         self.name: str = namegenerator.gen() if name is None else name
@@ -340,18 +345,28 @@ class BatchJob:
         self,
         status_to_state: Dict[Status, bool],
         max_attempts: Optional[int] = None,
-        delay: Optional[int] = None,
+        delay: Optional[Union[int, float]] = None,
+        minimum_delay: Optional[Union[int, float]] = None,
+        delay_width: Optional[Union[int, float]] = None,
         after_success: bool = False,
     ) -> batch.type_defs.JobDetailTypeDef:
         """Waits for the given states with associated success or failure.
 
         If some states are missing from the input mapping, then all statuses after the last
-        successful input status are treated as success or failure based on `after_success`
+        successful input status are treated as success or failure based on `after_success`.
+
+        This method first enforces a minimum delay of 1 second, then adds a small random jitter
+        (+/-2 seconds) to the delay to help avoid AWS batch API limits for monitoring batch jobs
+        in the cases of many requests across concurrent jobs.
 
         Args:
             status_to_state: mapping of status to success (true) or failure (false) state
             max_attempts: the maximum # of attempts until reaching the given state.
             delay: the delay before waiting
+            minimum_delay: override the a minimum delay
+            delay_width: the delay_width in the jitter to apply to the delay
+            after_success: true treat statuses "after" the last successful input status as
+                success, false to treat them as failure
         """
         assert len(status_to_state) > 0, "No statuses given"
         assert any(value for value in status_to_state.values()), "No statuses with success set."
@@ -373,8 +388,15 @@ class BatchJob:
 
         name = "Waiter for statues: [" + ",".join(s.status for s in _status_to_state) + "]"
         config: Dict[str, Any] = {"version": 2}
+
+        minimum_delay = MINIMUM_DELAY if minimum_delay is None else minimum_delay
+        delay_width = DEFAULT_JITTER_WIDTH if delay_width is None else delay_width
+        delay = add_jitter(delay=delay, width=delay_width, minima=minimum_delay)
+        if self._logger is not None:
+            self._logger.debug("Changing delay from {delay} to {actual_delay}")
+
         waiter_body: Dict[str, Any] = {
-            "delay": 1 if delay is None else delay,
+            "delay": delay,
             "operation": "DescribeJobs",
             "maxAttempts": sys.maxsize if max_attempts is None else max_attempts,
             "acceptors": [
@@ -394,33 +416,57 @@ class BatchJob:
         return self.describe_job()
 
     def wait_on_running(
-        self, max_attempts: Optional[int] = None, delay: Optional[int] = None
+        self,
+        max_attempts: Optional[int] = None,
+        delay: Optional[Union[int, float]] = None,
+        minimum_delay: Optional[Union[int, float]] = None,
+        delay_width: Optional[Union[int, float]] = None,
     ) -> batch.type_defs.JobDetailTypeDef:
         """Waits for the given states with associated success or failure.
+
+        This method first enforces a minimum delay of 1 second, then adds a small random jitter
+        (+/-2 seconds) to the delay to help avoid AWS batch API limits for monitoring batch jobs
+        in the cases of many requests across concurrent jobs.
 
         Args:
             max_attempts: the maximum # of attempts until reaching the given state.
             delay: the delay before waiting
+            minimum_delay: override the a minimum delay
+            delay_width: the delay_width in the jitter to apply to the delay
         """
         return self.wait_on(
             status_to_state={Status.Running: True},
             max_attempts=max_attempts,
             delay=delay,
+            minimum_delay=minimum_delay,
+            delay_width=delay_width,
             after_success=True,
         )
 
     def wait_on_complete(
-        self, max_attempts: Optional[int] = None, delay: Optional[int] = None
+        self,
+        max_attempts: Optional[int] = None,
+        delay: Optional[Union[int, float]] = None,
+        minimum_delay: Optional[Union[int, float]] = None,
+        delay_width: Optional[Union[int, float]] = None,
     ) -> batch.type_defs.JobDetailTypeDef:
         """Waits for the given states with associated success or failure.
+
+        This method first enforces a minimum delay of 1 second, then adds a small random jitter
+        (+/-2 seconds) to the delay to help avoid AWS batch API limits for monitoring batch jobs
+        in the cases of many requests across concurrent jobs.
 
         Args:
             max_attempts: the maximum # of attempts until reaching the given state.
             delay: the delay before waiting
+            minimum_delay: override the a minimum delay
+            delay_width: the delay_width in the jitter to apply to the delay
         """
         return self.wait_on(
             status_to_state={Status.Succeeded: True, Status.Failed: True},
             max_attempts=max_attempts,
             delay=delay,
+            minimum_delay=minimum_delay,
+            delay_width=delay_width,
             after_success=False,
         )
