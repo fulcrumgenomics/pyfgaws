@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyfgaws"
-version = "0.1.4"
+version = "0.1.5"
 description = "Tools and python libraries for working with AWS."
 authors = ["Nils Homer", "Tim Fennell"]
 license = "MIT"
