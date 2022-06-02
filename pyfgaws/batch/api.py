@@ -263,6 +263,11 @@ class BatchJob:
         """The log stream for the job, if available."""
         return self.describe_job()["container"].get("logStreamName")
 
+    @property
+    def group(self) -> Optional[str]:
+        """The log group for the job, if available."""
+        return self.describe_job()['container']['logConfiguration']['options'].get('awslogs-group')
+
     def submit(self) -> SubmitJobResponseTypeDef:
         """Submits this job."""
 
@@ -325,7 +330,7 @@ class BatchJob:
             return Status.from_string(self.describe_job()["status"])
 
     def describe_job(self) -> JobDetailTypeDef:
-        """Gets detauled information about this job."""
+        """Gets detailed information about this job."""
         jobs_response = self.client.describe_jobs(jobs=[self.job_id])
         job_statuses = jobs_response["jobs"]
         assert len(job_statuses) == 1
