@@ -213,7 +213,7 @@ def _watch_logs(
             try:
                 for line in log:
                     logger.info(line)
-            except client.exceptions.ResourceNotFoundException as ex:
+            except client.exceptions.ResourceNotFoundException:
                 logger.warning("The log stream has not been created, will try again.")
             time.sleep(polling_interval)
             log.reset()
