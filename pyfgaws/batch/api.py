@@ -266,7 +266,8 @@ class BatchJob:
     @property
     def group(self) -> Optional[str]:
         """The log group for the job, if available."""
-        return self.describe_job()["container"]["logConfiguration"]["options"].get("awslogs-group")  # type: ignore
+        options = self.describe_job()["container"]["logConfiguration"]["options"] # type: ignore
+        return options.get("awslogs-group")  # type: ignore
 
     def submit(self) -> SubmitJobResponseTypeDef:
         """Submits this job."""
