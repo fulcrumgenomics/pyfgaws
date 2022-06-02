@@ -77,6 +77,10 @@ def watch_job(
     logger.info(f"Watching job with name '{job.name}' and id '{job.job_id}'")
     if print_logs:
         _log_it(region_name=region_name, job=job, logger=logger, delay=delay)
+        if delay is None:
+            time.sleep(DEFAULT_LOGS_POLLING_INTERVAL)
+        else:
+            time.sleep(delay)
 
     job.wait_on_complete(delay=delay)
     end_status = job.get_status()
@@ -202,12 +206,15 @@ def _watch_logs(
     client: Optional[logs.Client] = boto3.client(
         service_name="logs", region_name=region_name  # type: ignore
     )
-    log: Log = Log(client=client, group="/aws/batch/job", stream=job.stream)
+    log: Log = Log(client=client, group=job.group, stream=job.stream)
 
     try:
         while True:
-            for line in log:
-                logger.info(line)
+            try:
+                for line in log:
+                    logger.info(line)
+            except client.exceptions.ResourceNotFoundException:
+                logger.warning("The log stream has not been created, will try again.")
             time.sleep(polling_interval)
             log.reset()
             if not indefinitely:
