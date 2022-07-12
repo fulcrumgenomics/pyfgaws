@@ -265,8 +265,20 @@ class BatchJob:
 
     @property
     def group(self) -> Optional[str]:
-        """The log group for the job, if available."""
-        options = self.describe_job()["container"]["logConfiguration"]["options"]  # type: ignore
+        """The log group for the job, if available.
+
+        If the stream is not available, then None is returned.  Otherwise, looks in
+        container.logConfiguration.options.awslogs-group, returning "/aws/batch/job" if that path
+        is not found.
+        """
+        if self.stream is None:
+            return None
+        config = self.describe_job()["container"].get("logConfiguration")  # type: ignore
+        if config is None:
+            return "/aws/batch/job"
+        options = config.get("options")  # type: ignore
+        if options is None:
+            return "/aws/batch/job"
         return options.get("awslogs-group")  # type: ignore
 
     def submit(self) -> SubmitJobResponseTypeDef:
