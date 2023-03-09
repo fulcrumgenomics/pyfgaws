@@ -15,13 +15,16 @@ from py._path.local import LocalPath as TmpDir
 from pyfgaws.batch import BatchJob
 from pyfgaws.batch import Status
 from pyfgaws.tests import stubbed_client
+from pyfgaws.tests import response_metadata
 
 
 def stubbed_client_submit_job(
     submit_job_response: SubmitJobResponseTypeDef,
     describe_job_definitions_response: Optional[DescribeJobDefinitionsResponseTypeDef] = None,
 ) -> Client:
-    client = botocore.session.get_session().create_client("batch", region_name="us-east-1")
+    client: Client = botocore.session.get_session().create_client(  # type: ignore
+        "batch", region_name="us-east-1"
+    )
     stubber = Stubber(client)
 
     if describe_job_definitions_response is not None:
@@ -64,11 +67,17 @@ def valid_describe_job_definitions_response() -> DescribeJobDefinitionsResponseT
             },
         ],
         "nextToken": "next-token",
+        "ResponseMetadata": response_metadata(),
     }
 
 
 def valid_submit_job_response() -> SubmitJobResponseTypeDef:
-    return {"jobName": "job-name", "jobId": "job-id"}
+    return {
+        "jobName": "job-name",
+        "jobId": "job-id",
+        "ResponseMetadata": response_metadata(),
+        "jobArn": "arn",
+    }
 
 
 def test_submit_job(tmpdir: TmpDir) -> None:
@@ -105,7 +114,8 @@ def build_describe_jobs_response(status: Status) -> DescribeJobsResponseTypeDef:
                 "startedAt": 1,
                 "status": status.status,
             }
-        ]
+        ],
+        "ResponseMetadata": response_metadata(),
     }
 
 

@@ -1,5 +1,6 @@
 """Main entry point for all pyfgaws tools."""
 
+import json
 import logging
 import sys
 from typing import Any
@@ -8,17 +9,19 @@ from typing import Dict
 from typing import List
 
 import defopt
-import json
-
-from pyfgaws.batch.tools import run_job
-from pyfgaws.batch.tools import watch_job
-from pyfgaws.batch import Status
-from pyfgaws.logs.tools import watch_logs
 from mypy_boto3_batch.type_defs import KeyValuePairTypeDef as BatchKeyValuePairTypeDef  # noqa
 
+from pyfgaws.batch import Status
+from pyfgaws.batch.tools import monitor
+from pyfgaws.batch.tools import run_job
+from pyfgaws.batch.tools import watch_job
+from pyfgaws.logs.tools import watch_logs
 
 # The list of tools to expose on the command line
-TOOLS: List[Callable] = sorted([run_job, watch_job, watch_logs], key=lambda f: f.__name__)
+TOOLS: Dict[str, List[Callable]] = {
+    "batch": [monitor, run_job, watch_job],
+    "logs": [watch_logs],
+}
 
 
 def _parse_key_value_pair_type(string: str) -> BatchKeyValuePairTypeDef:

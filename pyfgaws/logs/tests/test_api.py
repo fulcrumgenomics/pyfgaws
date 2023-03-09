@@ -8,6 +8,7 @@ from mypy_boto3_logs.type_defs import GetLogEventsResponseTypeDef  # noqa
 
 from pyfgaws.logs import Log
 from pyfgaws.tests import stubbed_client
+from pyfgaws.tests import response_metadata
 
 
 def stubbed_client_get_log_events(service_responses: List[GetLogEventsResponseTypeDef]) -> Client:
@@ -17,7 +18,12 @@ def stubbed_client_get_log_events(service_responses: List[GetLogEventsResponseTy
 
 
 def valid_empty_service_response() -> GetLogEventsResponseTypeDef:
-    return {"events": [], "nextForwardToken": "token-2", "nextBackwardToken": "token-2"}
+    return {
+        "events": [],
+        "nextForwardToken": "token-2",
+        "nextBackwardToken": "token-2",
+        "ResponseMetadata": response_metadata(),
+    }
 
 
 def valid_single_event_service_response() -> GetLogEventsResponseTypeDef:
@@ -25,6 +31,7 @@ def valid_single_event_service_response() -> GetLogEventsResponseTypeDef:
         "events": [{"timestamp": 123, "message": "message", "ingestionTime": 123}],
         "nextForwardToken": "token-2",
         "nextBackwardToken": "token-1",
+        "ResponseMetadata": response_metadata(),
     }
 
 
@@ -36,6 +43,7 @@ def valid_multiple_event_service_response() -> GetLogEventsResponseTypeDef:
         ],
         "nextForwardToken": "token-2",
         "nextBackwardToken": "token-1",
+        "ResponseMetadata": response_metadata(),
     }
 
 
@@ -45,6 +53,7 @@ def valid_multiple_service_responses() -> List[GetLogEventsResponseTypeDef]:
             "events": [{"timestamp": 123, "message": "message", "ingestionTime": 123}],
             "nextForwardToken": "token-2",
             "nextBackwardToken": "token-1",
+            "ResponseMetadata": response_metadata(),
         },
         {
             "events": [
@@ -53,8 +62,14 @@ def valid_multiple_service_responses() -> List[GetLogEventsResponseTypeDef]:
             ],
             "nextForwardToken": "token-3",
             "nextBackwardToken": "token-2",
+            "ResponseMetadata": response_metadata(),
         },
-        {"events": [], "nextForwardToken": "token-3", "nextBackwardToken": "token-3"},
+        {
+            "events": [],
+            "nextForwardToken": "token-3",
+            "nextBackwardToken": "token-3",
+            "ResponseMetadata": response_metadata(),
+        },
     ]
 
 

@@ -70,7 +70,7 @@ class Status(enum.Enum):
 
     @staticmethod
     def from_string(status: StatusValue) -> "Status":
-        """Builds a status from a string, case insensitive."""
+        """Builds a status from a string, case-insensitive."""
         status_lower = status.lower()
         return next(s for s in Status if s.status.lower() == status_lower)
 
@@ -109,7 +109,7 @@ class BatchJob:
 
     Attributes:
         client: the batch client to use
-        queue: the nae of the AWS batch queue
+        queue: the name of the AWS batch queue
         job_definition: the ARN for the AWS batch job definition, or the name of the job definition
             to get the latest revision
         name: the name of the job, otherwise one will be automatically generated
@@ -208,7 +208,7 @@ class BatchJob:
 
     @classmethod
     def from_id(cls, client: batch.Client, job_id: str) -> "BatchJob":
-        """"Builds a batch job from the given ID.
+        """Builds a batch job from the given ID.
 
         Will lookup the job to retrieve job information.
 
@@ -478,7 +478,7 @@ class BatchJob:
         Args:
             max_attempts: the maximum # of attempts until reaching the given state.
             delay: the delay before waiting
-            minimum_delay: override the a minimum delay
+            minimum_delay: override the minimum delay
             delay_width: the delay_width in the jitter to apply to the delay
         """
         return self.wait_on(
@@ -489,3 +489,30 @@ class BatchJob:
             delay_width=delay_width,
             after_success=False,
         )
+
+
+def list_jobs(client: batch.Client, queue: str) -> List[str]:
+    """Returns a list the batch job ids for given job queue
+
+    Args:
+        client: the batch client to use
+        queue: the name of the AWS batch queue
+    """
+
+    jobs: List[str] = []
+    next_token: str = ""
+    for status in Status:
+        while True:
+            response = client.list_jobs(
+                jobQueue=queue,
+                maxResults=100,  # the maximum
+                jobStatus=status.value[0],
+                nextToken=next_token,
+            )
+            job_summary_list = response["jobSummaryList"]
+            jobs.extend(job_dict["jobId"] for job_dict in job_summary_list)
+            next_token = response["nextToken"] if "nextToken" in job_summary_list else ""
+            if next_token == "":
+                break
+
+    return jobs
