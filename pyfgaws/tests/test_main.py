@@ -70,4 +70,6 @@ def test_tools_help() -> None:
 
 @pytest.mark.parametrize("tool", TOOLS)
 def test_tool_funcs(tool) -> None:  # type: ignore
-    _test_tool_funcs(tool, main)
+    for subcommand, tools in TOOLS.items():
+        for tool in tools:
+            _test_tool_funcs(subcommand, tool, main)

@@ -71,4 +71,4 @@ jobs:
         poetry run mypy -p pyfgaws --config=ci/mypy.ini
 
     - name: Upload code coverage
-      uses: codecov/codecov-action@v1.0.7
+      uses: codecov/codecov-action@v3

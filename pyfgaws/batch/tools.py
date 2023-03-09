@@ -19,9 +19,11 @@ from mypy_boto3_batch.type_defs import KeyValuePairTypeDef  # noqa
 from mypy_boto3_batch.type_defs import SubmitJobResponseTypeDef  # noqa
 
 from pyfgaws.batch import BatchJob
+from pyfgaws.batch.api import list_jobs
 from pyfgaws.batch import Status
 from pyfgaws.logs import DEFAULT_POLLING_INTERVAL as DEFAULT_LOGS_POLLING_INTERVAL
 from pyfgaws.logs import Log
+from fgpyo.util.string import column_it
 
 
 def _log_it(
@@ -222,3 +224,83 @@ def _watch_logs(
     except Exception as ex:
         logger.error(f"Encountered an exception while watching logs: {ex}")
         raise ex
+
+
+def monitor(
+    *,
+    job_ids: Optional[List[str]] = None,
+    queue: Optional[str] = None,
+    region_name: Optional[str] = None,
+    delay: Optional[int] = None,
+    per_job: bool = False
+) -> None:
+    """Monitor the Batch jobs with given job identifiers or job queue.
+
+    Args:
+        job_ids: the AWS batch job identifier(s)
+        queue: the name of the AWS batch queue
+        region_name: the AWS region
+        delay: the number of seconds to wait after polling for status(es).
+        per_job: true to monitor per-job status information, otherwise jobs will be summarized by
+                  status
+    """
+    logger = logging.getLogger(__name__)
+    assert (
+        job_ids is not None or queue is not None
+    ), "Either --job-ids or --queue must be specified"
+    assert job_ids is None or queue is None, "Both --job-ids or --queue cannot be specified"
+
+    client: batch.Client = boto3.client(
+        service_name="batch", region_name=region_name  # type: ignore
+    )
+
+    # get the job ids from the queue if necessary
+    if job_ids is None:
+        logger.info(f"Retrieving job ids for queue: {queue}")
+        job_ids = list_jobs(client=client, queue=queue)
+
+    # get the list of batch jobs from job ids
+    jobs: List[BatchJob] = [BatchJob.from_id(client=client, job_id=job_id) for job_id in job_ids]
+
+    logger.info(f"Monitoring {len(job_ids):,d} jobs.")
+
+    while True:
+        print("\033[H")  # clear the screen!
+        logger.info("Polling job status")
+
+        # print out detailed stats, and update status counts
+        status_counts: Dict[Optional[Status], int] = {status: 0 for status in Status}
+        status_counts[None] = 0
+        table_detail: List[List[str]] = [["JOB_NAME", "JOB_ID", "STATUS"]]
+        job: BatchJob
+        num_done: int = 0
+        for job in jobs:
+            status: Optional[Status] = job.get_status()
+            status_counts[status] = status_counts[status] + 1
+            status_name = "Unknown" if status is None else status.name
+            if per_job:
+                table_detail.append([job.name, job.job_id, status_name])
+            if status is not None and (status == Status.Succeeded or status == Status.Failed):
+                num_done += 1
+        print("\033[2J\033[H")  # clear the screen!
+        if per_job:
+            print(column_it(table_detail, delimiter="  "))
+
+        # print out summary stats
+        if num_done == len(job_ids) or not per_job:
+            table_summary: List[List[str]] = [["STATUS", "COUNT"]]
+            for status, count in status_counts.items():
+                status_name = "Unknown" if status is None else status.name
+                table_summary.append([status_name, f"{count:,d}"])
+            print("\033[2J\033[H")  # clear the screen!
+            print(column_it(table_summary, delimiter="  "))
+
+        if num_done == len(job_ids):
+            break
+
+        if delay is None:
+            time.sleep(DEFAULT_LOGS_POLLING_INTERVAL)
+        else:
+            time.sleep(delay)
+
+    logger.info("All jobs completed")

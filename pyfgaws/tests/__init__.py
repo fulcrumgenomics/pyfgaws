@@ -1,11 +1,13 @@
 """Testing utilities for :module:`~pyfgaws`"""
 
 from typing import Any
+from typing import Callable
 from typing import List
 
 import botocore.session
 import pytest
 from botocore.stub import Stubber
+from mypy_boto3_logs.type_defs import ResponseMetadataTypeDef  # noqa
 
 
 def _to_name(tool) -> str:  # type: ignore
@@ -14,9 +16,9 @@ def _to_name(tool) -> str:  # type: ignore
     return tool.__name__.replace("_", "-")
 
 
-def test_tool_funcs(tool, main) -> None:  # type: ignore
+def test_tool_funcs(subcommand: str, tool: Callable, main: Callable) -> None:  # type: ignore
     name = _to_name(tool)
-    argv = [name, "-h"]
+    argv = [subcommand, name, "-h"]
     with pytest.raises(SystemExit) as e:
         main(argv=argv)
     assert e.type == SystemExit
@@ -41,3 +43,13 @@ def stubbed_client(service_name: str, method: str, service_responses: List[Any])
         stubber.add_response(method=method, service_response=service_response)
     stubber.activate()
     return client
+
+
+def response_metadata() -> ResponseMetadataTypeDef:
+    return {
+        "RequestId": "id",
+        "HostId": "hostid",
+        "HTTPStatusCode": 200,
+        "HTTPHeaders": {},
+        "RetryAttempts": 0,
+    }
