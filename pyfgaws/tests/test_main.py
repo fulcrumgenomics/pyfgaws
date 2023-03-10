@@ -60,7 +60,7 @@ def test_incorrect_param_type() -> None:
 
 
 def test_tools_help() -> None:
-    """ Tests that running dts.tools with -h exits OK"""
+    """Tests that running dts.tools with -h exits OK"""
     argv = ["-h"]
     with pytest.raises(SystemExit) as e:
         main(argv=argv)

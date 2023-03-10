@@ -1,13 +1,5 @@
 [[package]]
 category = "dev"
-description = "A small Python module for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
-name = "appdirs"
-optional = false
-python-versions = "*"
-version = "1.4.4"
-
-[[package]]
-category = "dev"
 description = "Atomic file writes."
 marker = "sys_platform == \"win32\""
 name = "atomicwrites"
@@ -34,20 +26,29 @@ category = "dev"
 description = "The uncompromising code formatter."
 name = "black"
 optional = false
-python-versions = ">=3.6"
-version = "19.10b0"
+python-versions = ">=3.7"
+version = "23.1.0"
 
 [package.dependencies]
-appdirs = "*"
-attrs = ">=18.1.0"
-click = ">=6.5"
-pathspec = ">=0.6,<1"
-regex = "*"
-toml = ">=0.9.4"
-typed-ast = ">=1.4.0"
+click = ">=8.0.0"
+mypy-extensions = ">=0.4.3"
+packaging = ">=22.0"
+pathspec = ">=0.9.0"
+platformdirs = ">=2"
+
+[package.dependencies.tomli]
+python = "<3.11"
+version = ">=1.1.0"
+
+[package.dependencies.typing-extensions]
+python = "<3.10"
+version = ">=3.10.0.0"
 
 [package.extras]
-d = ["aiohttp (>=3.3.2)", "aiohttp-cors"]
+colorama = ["colorama (>=0.4.3)"]
+d = ["aiohttp (>=3.7.4)"]
+jupyter = ["ipython (>=7.8.0)", "tokenize-rt (>=3.2.0)"]
+uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
 category = "main"
@@ -661,6 +662,18 @@ version = "1.3.10"
 
 [[package]]
 category = "dev"
+description = "A small Python package for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
+name = "platformdirs"
+optional = false
+python-versions = ">=3.7"
+version = "3.1.0"
+
+[package.extras]
+docs = ["furo (>=2022.12.7)", "proselint (>=0.13)", "sphinx-autodoc-typehints (>=1.22,<1.23.4 || >1.23.4)", "sphinx (>=6.1.3)"]
+test = ["appdirs (1.4.4)", "covdefaults (>=2.2.2)", "pytest-cov (>=4)", "pytest-mock (>=3.10)", "pytest (>=7.2.1)"]
+
+[[package]]
+category = "dev"
 description = "plugin and hook calling mechanisms for python"
 name = "pluggy"
 optional = false
@@ -765,14 +778,6 @@ version = "2.8.2"
 six = ">=1.5"
 
 [[package]]
-category = "dev"
-description = "Alternative regular expression module, to replace re."
-name = "regex"
-optional = false
-python-versions = ">=3.6"
-version = "2022.10.31"
-
-[[package]]
 category = "main"
 description = "An Amazon S3 Transfer Manager"
 name = "s3transfer"
@@ -808,16 +813,8 @@ six = ">=1.5.2"
 
 [[package]]
 category = "dev"
-description = "Python Library for Tom's Obvious, Minimal Language"
-name = "toml"
-optional = false
-python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
-version = "0.10.2"
-
-[[package]]
-category = "dev"
 description = "A lil' TOML parser"
-marker = "python_full_version <= \"3.11.0a6\""
+marker = "python_full_version <= \"3.11.0a6\" or python_version < \"3.11\""
 name = "tomli"
 optional = false
 python-versions = ">=3.7"
@@ -880,11 +877,10 @@ python-versions = "*"
 version = "0.2.6"
 
 [metadata]
-content-hash = "487aa8e170ccd348b04556cd7d23121735587644375fe85879a2b111f3766bc7"
+content-hash = "4accbd3db5f57d3a277fc64d403bf0ec6816fe0d4220b3e3a652d030c4321a8f"
 python-versions = "^3.8"
 
 [metadata.files]
-appdirs = []
 atomicwrites = []
 attrs = []
 black = []
@@ -910,6 +906,7 @@ namegenerator = []
 packaging = []
 pathspec = []
 pkgutil-resolve-name = []
+platformdirs = []
 pluggy = []
 pockets = []
 py = []
@@ -919,11 +916,9 @@ pysam = []
 pytest = []
 pytest-cov = []
 python-dateutil = []
-regex = []
 s3transfer = []
 six = []
 sphinxcontrib-napoleon = []
-toml = []
 tomli = []
 typed-ast = []
 types-awscrt = []

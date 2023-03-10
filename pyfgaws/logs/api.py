@@ -47,7 +47,9 @@ class Log(Iterator[str]):
         # add more events
         if self.next_token is None:
             response = self.client.get_log_events(
-                logGroupName=self.group, logStreamName=self.stream, startFromHead=True,
+                logGroupName=self.group,
+                logStreamName=self.stream,
+                startFromHead=True,
             )
         else:
             response = self.client.get_log_events(
