@@ -33,9 +33,7 @@ def watch_logs(
     """
     logger = logging.getLogger(__name__)
 
-    client = boto3.client(
-        service_name="logs", region_name=region_name  # type: ignore
-    )
+    client = boto3.client(service_name="logs", region_name=region_name)  # type: ignore
 
     logger.info(f"Polling log group '{group}' and stream '{stream}'")
 

@@ -232,7 +232,7 @@ def monitor(
     queue: Optional[str] = None,
     region_name: Optional[str] = None,
     delay: Optional[int] = None,
-    per_job: bool = False
+    per_job: bool = False,
 ) -> None:
     """Monitor the Batch jobs with given job identifiers or job queue.
 

@@ -153,7 +153,6 @@ class BatchJob:
         timeout: Optional[JobTimeoutTypeDef] = None,
         logger: Optional[logging.Logger] = None,
     ) -> None:
-
         self.client: batch.Client = client
 
         # Get the latest job definition ARN if not given
@@ -178,8 +177,8 @@ class BatchJob:
         self.array_properties: Optional[ArrayPropertiesTypeDef] = array_properties
         self.depends_on: Optional[List[JobDependencyTypeDef]] = copy.deepcopy(depends_on)
         self.parameters: Optional[Dict[str, Any]] = copy.deepcopy(parameters)
-        self.container_overrides: Optional[ContainerOverridesTypeDef] = (
-            copy.deepcopy(container_overrides)
+        self.container_overrides: Optional[ContainerOverridesTypeDef] = copy.deepcopy(
+            container_overrides
         )
         self.node_overrides: Optional[NodeOverridesTypeDef] = node_overrides
         self.retry_strategy: Optional[RetryStrategyTypeDef] = retry_strategy
