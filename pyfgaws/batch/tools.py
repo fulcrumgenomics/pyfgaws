@@ -257,7 +257,7 @@ def monitor(
         job_ids is not None or queue is not None
     ), "Either --job-ids or --queue must be specified"
     assert job_ids is None or queue is None, "Both --job-ids or --queue cannot be specified"
-    assert queue is None or not monitor_queue, "--queue must be used with --monitor-queue"
+    assert not monitor_queue or queue is not None, "--queue must be used with --monitor-queue"
 
     client: batch.Client = boto3.client(
         service_name="batch", region_name=region_name  # type: ignore
