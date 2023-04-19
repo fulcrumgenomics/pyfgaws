@@ -249,7 +249,7 @@ def monitor(
         delay: the number of seconds to wait after polling for status(es).
         per_job: true to monitor per-job status information, otherwise jobs will be summarized by
                   status
-        monitor-queue: never exit and keep monitoring for new jobs.  Can only be used with the
+        monitor_queue: never exit and keep monitoring for new jobs.  Can only be used with the
                        `--queue` option
     """
     logger = logging.getLogger(__name__)
