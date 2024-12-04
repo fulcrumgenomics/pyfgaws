@@ -37,7 +37,7 @@ fgpyo = "^0.0.6"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.4.2"
-mypy = "^0.770"
+mypy = ">=1.7.0"
 flake8 = "^3.8.1"
 black = "^23.1.0"
 pytest-cov = ">=2.8.1"

@@ -28,7 +28,7 @@ from mypy_boto3_batch.type_defs import JobTimeoutTypeDef  # noqa
 from mypy_boto3_batch.type_defs import KeyValuePairTypeDef  # noqa
 from mypy_boto3_batch.type_defs import NodeOverridesTypeDef  # noqa
 from mypy_boto3_batch.type_defs import ResourceRequirementTypeDef  # noqa
-from mypy_boto3_batch.type_defs import RetryStrategyTypeDef  # noqa
+from mypy_boto3_batch.type_defs import RetryStrategyOutputTypeDef  # noqa
 from mypy_boto3_batch.type_defs import SubmitJobResponseTypeDef  # noqa
 
 from pyfgaws.core import MINIMUM_DELAY
@@ -149,7 +149,7 @@ class BatchJob:
         parameters: Optional[Dict[str, str]] = None,
         container_overrides: Optional[ContainerOverridesTypeDef] = None,
         node_overrides: Optional[NodeOverridesTypeDef] = None,
-        retry_strategy: Optional[RetryStrategyTypeDef] = None,
+        retry_strategy: Optional[RetryStrategyOutputTypeDef] = None,
         timeout: Optional[JobTimeoutTypeDef] = None,
         logger: Optional[logging.Logger] = None,
     ) -> None:
@@ -181,7 +181,7 @@ class BatchJob:
             container_overrides
         )
         self.node_overrides: Optional[NodeOverridesTypeDef] = node_overrides
-        self.retry_strategy: Optional[RetryStrategyTypeDef] = retry_strategy
+        self.retry_strategy: Optional[RetryStrategyOutputTypeDef] = retry_strategy
         self.timeout: Optional[JobTimeoutTypeDef] = timeout
 
         # Add to container overrides
