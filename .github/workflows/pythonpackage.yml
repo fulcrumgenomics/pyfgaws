@@ -2,7 +2,7 @@ name: Python package
 
 on: [push]
 env:
-  POETRY_VERSION: 1.0
+  POETRY_VERSION: 1.8.3
 
 jobs:
   testing:
