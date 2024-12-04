@@ -37,7 +37,7 @@
 
 `pip install pyfgaws`
 
-**Requires python 3.8**
+**Requires python 3.9**
 
 # Getting Setup
 
