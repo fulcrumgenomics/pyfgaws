@@ -10,8 +10,6 @@ from mypy_boto3_batch import Client
 from mypy_boto3_batch.type_defs import DescribeJobDefinitionsResponseTypeDef  # noqa
 from mypy_boto3_batch.type_defs import DescribeJobsResponseTypeDef  # noqa
 from mypy_boto3_batch.type_defs import SubmitJobResponseTypeDef  # noqa
-from py._path.local import LocalPath as TmpDir
-
 from pyfgaws.batch import BatchJob
 from pyfgaws.batch import Status
 from pyfgaws.tests import stubbed_client
@@ -80,7 +78,7 @@ def valid_submit_job_response() -> SubmitJobResponseTypeDef:
     }
 
 
-def test_submit_job(tmpdir: TmpDir) -> None:
+def test_submit_job() -> None:
     for job_definition in ["job-definition-name", "arn:aws:batch:some-arn"]:
         client: Client
         submit_job_response: SubmitJobResponseTypeDef = valid_submit_job_response()
