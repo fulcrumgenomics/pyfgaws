@@ -23,7 +23,7 @@ from pyfgaws.batch.api import list_jobs
 from pyfgaws.batch import Status
 from pyfgaws.logs import DEFAULT_POLLING_INTERVAL as DEFAULT_LOGS_POLLING_INTERVAL
 from pyfgaws.logs import Log
-from fgpyo.util.string import column_it
+from pyfgaws.util import column_it
 
 
 def _log_it(
