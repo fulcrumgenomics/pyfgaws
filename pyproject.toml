@@ -27,13 +27,12 @@ include = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
-attrs = "^19.3.0"
+attrs = ">=19.3.0"
 defopt = "^6.0"
 boto3 = "^1.13.18"
 botocore = "^1.13.18"
 boto3-stubs = {extras = ["batch", "logs"], version = "^1.13.19"}
 namegenerator = "^1.0.6"
-fgpyo = "^0.0.6"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.4.0"
