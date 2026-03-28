@@ -36,11 +36,11 @@ namegenerator = "^1.0.6"
 fgpyo = "^0.0.6"
 
 [tool.poetry.dev-dependencies]
-pytest = "^5.4.2"
+pytest = "^7.4.0"
 mypy = ">=1.7.0"
-flake8 = "^3.8.1"
+flake8 = "^6.1.0"
 black = "^23.1.0"
-pytest-cov = ">=2.8.1"
+pytest-cov = ">=4.1.0"
 
 [tool.poetry.scripts]
 fgaws-tools = "pyfgaws.__main__:main"
